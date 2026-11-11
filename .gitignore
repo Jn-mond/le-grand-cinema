@@ -1,0 +1,24 @@
+# Dépendances et builds
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Variables d'environnement (ne jamais versionner les secrets)
+.env
+.env.*
+!.env.example
+
+# Plateforme et outils
+.vercel/
+.supabase/
+*.log
+npm-debug.log*
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
