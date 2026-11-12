@@ -33,5 +33,6 @@ Le travail se fait sur des branches temporaires nommées selon la convention dé
 .
 ├── CONTRIBUTING.md   convention de branches, de commits et de fusion
 ├── README.md         présentation du projet
-└── docs/             documentation (à compléter au fil du projet)
+├── db/               base de données : migrations, jeu d'essai, tests
+└── docs/             documentation (modèle de données, puis le reste au fil du projet)
 ```
