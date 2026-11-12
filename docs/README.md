@@ -1,3 +1,9 @@
 # Documentation
 
-Ce dossier accueillera la documentation du projet (architecture, décisions, procédures).
+| Document | Contenu |
+|---|---|
+| [`modele-de-donnees.md`](modele-de-donnees.md) | Base de données : schéma, dictionnaire des tables, règles de gestion, outils et méthode d'évolution. |
+| [`schema_base_de_donnees.drawio`](schema_base_de_donnees.drawio) | Schéma modifiable avec draw.io. |
+| [`schema_base_de_donnees.png`](schema_base_de_donnees.png) | Image du schéma. |
+
+D'autres documents (architecture, décisions, procédures) seront ajoutés au fil du projet.
