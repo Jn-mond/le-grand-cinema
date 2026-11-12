@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 et 0002) et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0003) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -148,6 +148,22 @@ select pg_temp.doit_echouer('T32 réservation en ligne avec vendeur refusée',
   $q$insert into reservation (seance_id, email, vendeur_id) values (1, 'e@exemple.test', '00000000-0000-0000-0000-000000000003')$q$, '23514');
 select pg_temp.doit_echouer('T33 e-mail invalide refusé même au guichet',
   $q$insert into reservation (seance_id, email, canal, vendeur_id) values (1, 'pas-un-email', 'guichet', '00000000-0000-0000-0000-000000000003')$q$, '23514');
+
+-- T34..T38 : référence, nom du client et recherche (migration 0003)
+insert into reservation (id, seance_id, email, nom_client, canal, vendeur_id)
+  values ('10000000-0000-0000-0000-000000000009', 1, null, 'Dupont Marie', 'guichet', '00000000-0000-0000-0000-000000000003');
+select pg_temp.doit_etre_vrai('T34 chaque réservation reçoit une référence au bon format',
+  $q$select bool_and(reference ~ '^LGC-[A-HJ-NP-Z2-9]{6}$') and count(distinct reference) = count(*) from reservation$q$);
+select pg_temp.doit_echouer('T35 référence en double refusée',
+  $q$insert into reservation (seance_id, email, reference)
+     select 1, 'dup@exemple.test', reference from reservation limit 1$q$, '23505');
+select pg_temp.doit_echouer('T36 nom de client vide refusé',
+  $q$insert into reservation (seance_id, email, nom_client) values (1, 'v@exemple.test', '   ')$q$, '23514');
+select pg_temp.doit_etre_vrai('T37 recherche par début de nom (sans tenir compte des majuscules)',
+  $q$select count(*) = 1 from rechercher_reservations('dupont')$q$);
+select pg_temp.doit_etre_vrai('T38 recherche par référence et par e-mail',
+  $q$select (select count(*) from rechercher_reservations((select reference from reservation where id = '10000000-0000-0000-0000-000000000001'))) = 1
+        and (select count(*) from rechercher_reservations('A@EXEMPLE.TEST')) = 1$q$);
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;
