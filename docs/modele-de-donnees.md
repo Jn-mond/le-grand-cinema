@@ -2,7 +2,7 @@
 
 Ce document décrit la base de données de l'application de réservation : ce qu'elle contient, les règles qu'elle garantit elle-même, et comment la faire évoluer avec les bons outils.
 
-- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche) et [`0004_verrou_non_prolongeable.sql`](../db/migrations/0004_verrou_non_prolongeable.sql) (correctif du verrou)
+- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche) [`0004_verrou_non_prolongeable.sql`](../db/migrations/0004_verrou_non_prolongeable.sql) (correctif du verrou) et [`0005_verrou_multiple_et_securite_api.sql`](../db/migrations/0005_verrou_multiple_et_securite_api.sql) (verrouillage de plusieurs places, protection de l'API)
 - Schéma modifiable : [`docs/schema_base_de_donnees.drawio`](schema_base_de_donnees.drawio) (ouvrir avec [draw.io](https://app.diagrams.net) ou l'extension VS Code « Draw.io Integration »)
 - Image du schéma : [`docs/schema_base_de_donnees.png`](schema_base_de_donnees.png)
 - Tests et jeu d'essai : [`db/`](../db/README.md)
@@ -149,6 +149,8 @@ Chaque règle importante est appliquée par la base elle-même, pas seulement pa
 | Règle | Mécanisme dans la base |
 |---|---|
 | Une place ne peut pas être vendue deux fois pour la même séance. | Index unique partiel `billet_place_vendue_une_fois` sur (`seance_id`, `place_id`) pour les billets valides ou utilisés. Une place dont le billet est annulé redevient vendable. |
+| Les places choisies ensemble sont bloquées toutes ou aucune, sans interblocage entre deux clients simultanés. | Fonction `poser_verrous()` : bloc annulé si une place est refusée, places traitées par numéro croissant (migration 0005). |
+| Les données ne sont pas accessibles avec la clé publique de Supabase. | Sécurité au niveau des lignes (RLS) activée sur toutes les tables, droits retirés sur les vues et les fonctions pour les rôles `anon` et `authenticated` (migration 0005). |
 | Une place n'est bloquée que par une réservation à la fois. | Clé primaire (`seance_id`, `place_id`) de `verrou_place`. |
 | Une place déjà vendue ne peut pas être bloquée. | Fonction `poser_verrou()` et déclencheur `verrou_place_verifier` (filet de sécurité si l'insertion ne passe pas par la fonction). |
 | Un blocage expire au bout de 10 minutes et la place est alors réutilisable. | Colonne `expire_at` ; `poser_verrou()` écrase un verrou expiré et ne prolonge jamais l'échéance (délai compté depuis la création de la réservation, migration 0004) ; `liberer_verrous_expires()` (tâche planifiée) supprime les verrous expirés. |
@@ -164,7 +166,7 @@ Chaque règle importante est appliquée par la base elle-même, pas seulement pa
 | Une adresse e-mail n'a qu'un compte, sans distinction de majuscules ; son format est vérifié. | Index unique sur `lower(email)` et contrainte `CHECK`. |
 | On ne supprime pas par erreur un film, une salle ou une séance utilisés. | Clés étrangères en `ON DELETE RESTRICT`. |
 
-Les 41 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
+Les 45 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
 
 ## 4. Choix de conception
 
@@ -184,7 +186,7 @@ Les 41 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérif
 - réservation d'une salle entière avec devis (profil U3) : la table des devis n'existe pas encore ;
 - journal d'audit des modifications de programmation ;
 - règles de conservation et d'anonymisation des données personnelles (RGPD) ;
-- politiques d'accès par ligne (Row Level Security de Supabase) : à définir avec l'authentification.
+- règles d'accès par ligne pour les utilisateurs connectés : la sécurité au niveau des lignes (RLS) est activée depuis la migration 0005 mais sans règle, donc seule l'application côté serveur accède aux données ; les règles fines viendront avec l'authentification.
 
 ## 6. Utiliser et modifier la base avec les bons outils
 
