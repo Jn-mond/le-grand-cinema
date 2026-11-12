@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0004) et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0005) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -178,6 +178,35 @@ select pg_temp.doit_etre_vrai('T40 une réservation de plus de 10 minutes ne peu
 update verrou_place set expire_at = now() - interval '1 second' where seance_id = 1 and place_id = 10;
 select pg_temp.doit_etre_vrai('T41 une réservation périmée ne peut pas reprendre son verrou expiré',
   $q$select not poser_verrou('10000000-0000-0000-0000-00000000000b', 10)$q$);
+
+-- T42..T45 : verrouillage de plusieurs places, tout ou rien (migration 0005)
+-- L'appel et la vérification sont dans deux requêtes distinctes : une sous-requête de la
+-- même instruction ne verrait pas les verrous que la fonction vient de poser.
+insert into reservation (id, seance_id, email) values
+ ('10000000-0000-0000-0000-00000000000c', 1, 'groupe1@exemple.test'),
+ ('10000000-0000-0000-0000-00000000000d', 1, 'groupe2@exemple.test');
+create temp table refus as
+  select 'T42'::text as test, poser_verrous('10000000-0000-0000-0000-00000000000c', array[14, 12, 13]) as places;
+select pg_temp.doit_etre_vrai('T42 plusieurs places libres : toutes verrouillées, aucun refus',
+  $q$select (select cardinality(places) = 0 from refus where test = 'T42')
+        and (select count(*) = 3 from verrou_place
+             where reservation_id = '10000000-0000-0000-0000-00000000000c')$q$);
+insert into refus select 'T43', poser_verrous('10000000-0000-0000-0000-00000000000d', array[15, 13, 16]);
+select pg_temp.doit_etre_vrai('T43 une place déjà prise : refus signalé et aucune place verrouillée',
+  $q$select (select places = array[13]::bigint[] from refus where test = 'T43')
+        and not exists (select 1 from verrou_place
+                        where reservation_id = '10000000-0000-0000-0000-00000000000d')
+        and exists (select 1 from vue_places_seance where seance_id = 1 and place_id = 15 and etat = 'libre')$q$);
+insert into refus select 'T44', poser_verrous('10000000-0000-0000-0000-00000000000d', array[17, 17]);
+select pg_temp.doit_etre_vrai('T44 une place demandée deux fois n''est verrouillée qu''une fois',
+  $q$select (select cardinality(places) = 0 from refus where test = 'T44')
+        and (select count(*) = 1 from verrou_place
+             where reservation_id = '10000000-0000-0000-0000-00000000000d' and place_id = 17)$q$);
+insert into refus select 'T45', poser_verrous('10000000-0000-0000-0000-00000000000d', '{}');
+select pg_temp.doit_etre_vrai('T45 liste vide : aucun effet',
+  $q$select (select cardinality(places) = 0 from refus where test = 'T45')
+        and (select count(*) = 1 from verrou_place
+             where reservation_id = '10000000-0000-0000-0000-00000000000d')$q$);
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;

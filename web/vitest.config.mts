@@ -12,7 +12,15 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html", "lcov"],
       include: ["src/lib/**/*.ts", "src/modules/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/**/depot-supabase.ts", "src/lib/supabase-serveur.ts"],
+      exclude: [
+        "src/**/*.test.ts",
+        "src/test/**",
+        "src/**/depot.ts",
+        "src/**/depot-supabase.ts",
+        "src/lib/supabase-serveur.ts",
+      ],
+      // Seuils minimaux : la vérification automatique échoue si la couverture descend en dessous.
+      thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
     },
   },
 });

@@ -32,11 +32,11 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 ### E2 — Disponibilités et plan de salle en temps réel (U1, U2)
 - **Base :** `place` (rangée, numéro, position et accessibilité PMR pour dessiner le plan), vue `vue_places_seance` (état libre, verrouillée ou vendue pour chaque place d'une séance).
 - **Critère « aucune place vendue deux fois, même sous requêtes simultanées » :** index unique partiel `billet_place_vendue_une_fois` et clé primaire de `verrou_place`, vérifiés par le test T18 et par `db/tests/concurrence.sh` (20 clients, une place, un seul gagnant).
-- **Application :** diffusion des changements au navigateur (Supabase Realtime) et rafraîchissement du plan en moins de 5 secondes : cela ne se mesure pas dans la base.
+- **Application :** API `GET /api/seances/{id}/places` (plan de salle) ; restent la diffusion des changements au navigateur (Supabase Realtime) et rafraîchissement du plan en moins de 5 secondes : cela ne se mesure pas dans la base.
 
 ### E3 — Réservation et verrou de places (U1, U2)
-- **Base :** `reservation`, `verrou_place`, fonctions `poser_verrou()` et `liberer_verrous_expires()`. Le verrou dure 10 minutes (`expire_at`) ; un verrou expiré est écrasé par la réservation suivante sans attendre le nettoyage (test T16) et ne peut pas être prolongé (correctif C1, tests T39 à T41) ; la tâche planifiée libère les verrous expirés (test T17).
-- **Application :** récapitulatif de la commande avant paiement, déclenchement de la tâche planifiée.
+- **Base :** `reservation`, `verrou_place`, fonctions `poser_verrou()` et `liberer_verrous_expires()`. Le verrou dure 10 minutes (`expire_at`) ; un verrou expiré est écrasé par la réservation suivante sans attendre le nettoyage (test T16) et ne peut pas être prolongé (correctif C1, tests T39 à T41) ; `poser_verrous()` bloque plusieurs places d'un coup, toutes ou aucune (tests T42 à T45) ; la tâche planifiée libère les verrous expirés (test T17).
+- **Application :** API `POST /api/reservations` et `POST /api/reservations/{id}/verrous` (documentée dans `web/public/openapi.json`), avec validation des entrées et erreurs normalisées ; restent le récapitulatif avant paiement et le déclenchement de la tâche planifiée.
 
 ### E4 — Paiement en ligne sécurisé (U1, U2, U3)
 - **Base :** `commande` (une tentative de paiement, un seul paiement validé par réservation, test T25) et `evenement_paiement` (chaque message du prestataire n'est traité qu'une fois). Aucune donnée de carte n'est stockée : la saisie se fait chez le prestataire.
@@ -72,7 +72,8 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 
 ### E12 — Socle transverse (tous profils)
 - **Couvert par la base :** intégrité des données (clés étrangères, contraintes, tests), pas de mot de passe ni de donnée de carte stockés.
-- **À venir :** règles de conservation et d'anonymisation RGPD, politiques d'accès par ligne (Row Level Security de Supabase) avec l'authentification, supervision et sauvegardes (services de la plateforme).
+- **Fait (migration 0005) :** sécurité au niveau des lignes activée sur toutes les tables, accès retiré à la clé publique de Supabase ; clé secrète utilisée uniquement côté serveur.
+- **À venir :** règles de conservation et d'anonymisation RGPD, règles d'accès par utilisateur connecté, supervision et sauvegardes (services de la plateforme).
 
 ### E13 et E14 — V2
 Aucune table à ce jour : devis et privatisation de salles (E13), offres, fidélité et notifications (E14). Le compte client prévu en V1 (`utilisateur`) leur servira de base.

@@ -1,0 +1,529 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Le Grand Cinéma — API de réservation",
+    "version": "0.1.0",
+    "description": "API REST/JSON de l'application Le Grand Cinéma. Story E3 : choisir ses places et les bloquer 10 minutes pendant le paiement. Les erreurs suivent le format « problem details » (RFC 9457), avec un champ `code` stable."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Même origine que l'application"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Séances",
+      "description": "Programmation et plan de salle"
+    },
+    {
+      "name": "Réservations",
+      "description": "Réservation et verrou de places (E3)"
+    }
+  ],
+  "paths": {
+    "/api/seances/{id}/places": {
+      "get": {
+        "tags": [
+          "Séances"
+        ],
+        "summary": "Plan de salle d'une séance",
+        "description": "État de chaque place d'une séance publiée : libre, verrouillée (en cours de paiement par un autre client) ou vendue.",
+        "operationId": "obtenirPlanDeSalle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identifiant de la séance",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan de salle",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDeSalle"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Identifiant invalide",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Séance inconnue ou non publiée",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                },
+                "example": {
+                  "type": "about:blank",
+                  "title": "Séance introuvable",
+                  "status": 404,
+                  "code": "SEANCE_INTROUVABLE"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur interne",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reservations": {
+      "post": {
+        "tags": [
+          "Réservations"
+        ],
+        "summary": "Ouvrir une réservation",
+        "description": "Crée une réservation en attente de paiement sur une séance publiée et à venir. Le client dispose de 10 minutes à partir de cet instant pour choisir ses places et payer (`expireAt`).",
+        "operationId": "creerReservation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeReservation"
+              },
+              "example": {
+                "seanceId": 1,
+                "email": "alice@exemple.fr",
+                "nomClient": "Alice Martin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Réservation créée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reservation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Données invalides",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                },
+                "example": {
+                  "type": "about:blank",
+                  "title": "Données invalides",
+                  "status": 400,
+                  "code": "REQUETE_INVALIDE",
+                  "erreurs": [
+                    {
+                      "champ": "email",
+                      "message": "Adresse e-mail invalide"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Séance inconnue",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Séance non publiée ou déjà commencée",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur interne",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reservations/{id}/verrous": {
+      "post": {
+        "tags": [
+          "Réservations"
+        ],
+        "summary": "Bloquer les places choisies",
+        "description": "Bloque toutes les places demandées jusqu'à l'échéance de la réservation, ou aucune si l'une d'elles n'est plus disponible. Les doublons sont ignorés. Un nouvel appel ne prolonge pas le délai (correctif C1).",
+        "operationId": "verrouillerPlaces",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identifiant de la réservation",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemandeVerrouillage"
+              },
+              "example": {
+                "placeIds": [
+                  12,
+                  13,
+                  14
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Places bloquées",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlacesVerrouillees"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Données invalides",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Réservation inconnue",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Places indisponibles, ou réservation déjà confirmée ou annulée",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                },
+                "example": {
+                  "type": "about:blank",
+                  "title": "Certaines places ne sont plus disponibles : aucune place n'a été bloquée",
+                  "status": 409,
+                  "code": "PLACES_INDISPONIBLES",
+                  "placesRefusees": [
+                    13
+                  ]
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Délai de 10 minutes dépassé",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Trop de places demandées",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Erreur interne",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Probleme"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DemandeReservation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "seanceId",
+          "email"
+        ],
+        "properties": {
+          "seanceId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "nomClient": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        }
+      },
+      "Reservation": {
+        "type": "object",
+        "required": [
+          "id",
+          "reference",
+          "seanceId",
+          "statut",
+          "expireAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reference": {
+            "type": "string",
+            "pattern": "^LGC-[A-HJ-NP-Z2-9]{6}$",
+            "example": "LGC-7K4Q2M"
+          },
+          "seanceId": {
+            "type": "integer"
+          },
+          "statut": {
+            "type": "string",
+            "enum": [
+              "en_attente_paiement",
+              "confirmee",
+              "annulee",
+              "expiree"
+            ]
+          },
+          "expireAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fin du délai de 10 minutes"
+          }
+        }
+      },
+      "DemandeVerrouillage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "placeIds"
+        ],
+        "properties": {
+          "placeIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "PlacesVerrouillees": {
+        "type": "object",
+        "required": [
+          "reservationId",
+          "placeIds",
+          "expireAt"
+        ],
+        "properties": {
+          "reservationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "placeIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "expireAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Place": {
+        "type": "object",
+        "required": [
+          "id",
+          "rangee",
+          "numero",
+          "accessiblePmr",
+          "positionX",
+          "positionY",
+          "etat"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "rangee": {
+            "type": "string",
+            "example": "A"
+          },
+          "numero": {
+            "type": "integer"
+          },
+          "accessiblePmr": {
+            "type": "boolean"
+          },
+          "positionX": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "positionY": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "etat": {
+            "type": "string",
+            "enum": [
+              "libre",
+              "verrouillee",
+              "vendue"
+            ]
+          }
+        }
+      },
+      "PlanDeSalle": {
+        "type": "object",
+        "required": [
+          "seanceId",
+          "places",
+          "resume"
+        ],
+        "properties": {
+          "seanceId": {
+            "type": "integer"
+          },
+          "places": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Place"
+            }
+          },
+          "resume": {
+            "type": "object",
+            "properties": {
+              "libre": {
+                "type": "integer"
+              },
+              "verrouillee": {
+                "type": "integer"
+              },
+              "vendue": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "Probleme": {
+        "type": "object",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "description": "Erreur au format RFC 9457 ; peut contenir des champs complémentaires (erreurs, placesRefusees, maximum, statut).",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "REQUETE_INVALIDE",
+              "SEANCE_INTROUVABLE",
+              "SEANCE_NON_RESERVABLE",
+              "RESERVATION_INTROUVABLE",
+              "RESERVATION_NON_MODIFIABLE",
+              "RESERVATION_EXPIREE",
+              "PLACES_INDISPONIBLES",
+              "PLACES_TROP_NOMBREUSES",
+              "CONFIGURATION_MANQUANTE",
+              "ERREUR_INTERNE"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
