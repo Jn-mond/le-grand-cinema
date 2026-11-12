@@ -6,7 +6,7 @@ Projet réalisé dans le cadre de la formation Studi. Le dépôt est public.
 
 ## État du projet
 
-Le dépôt vient d'être initialisé. Il ne contient pas encore de code applicatif : le développement démarre pas à pas, EPIC par EPIC.
+Le modèle de données est en place et testé ; l'application web (Next.js) est initialisée. Le développement avance EPIC par EPIC, chaque changement passant par une Pull Request vérifiée automatiquement.
 
 ## Architecture visée
 
@@ -31,8 +31,11 @@ Le travail se fait sur des branches temporaires nommées selon la convention dé
 
 ```text
 .
+├── .github/          vérification automatique (GitHub Actions), modèle de Pull Request
 ├── CONTRIBUTING.md   convention de branches, de commits et de fusion
 ├── README.md         présentation du projet
 ├── db/               base de données : migrations, jeu d'essai, tests
-└── docs/             documentation (modèle de données, puis le reste au fil du projet)
+├── docs/             documentation (modèle de données, qualité, correctifs…)
+├── sonar-project.properties   configuration de l'analyse SonarQube Cloud
+└── web/              application Next.js (interface et API)
 ```

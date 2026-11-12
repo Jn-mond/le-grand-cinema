@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:verifier": "prettier --check .",
+    "test": "vitest run --passWithNoTests",
+    "test:couverture": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "next": "16.4.6",
