@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0003) et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0004) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -164,6 +164,20 @@ select pg_temp.doit_etre_vrai('T37 recherche par début de nom (sans tenir compt
 select pg_temp.doit_etre_vrai('T38 recherche par référence et par e-mail',
   $q$select (select count(*) from rechercher_reservations((select reference from reservation where id = '10000000-0000-0000-0000-000000000001'))) = 1
         and (select count(*) from rechercher_reservations('A@EXEMPLE.TEST')) = 1$q$);
+
+-- T39..T41 : le verrou ne se prolonge pas (migration 0004, correctif E3)
+insert into reservation (id, seance_id, email) values ('10000000-0000-0000-0000-00000000000b', 1, 'delai@exemple.test');
+select poser_verrou('10000000-0000-0000-0000-00000000000b', 10);
+update verrou_place set expire_at = now() + interval '1 minute' where seance_id = 1 and place_id = 10;
+select pg_temp.doit_etre_vrai('T39 un appel répété ne repousse pas l''échéance du verrou',
+  $q$select poser_verrou('10000000-0000-0000-0000-00000000000b', 10)
+        and (select expire_at = now() + interval '1 minute' from verrou_place where seance_id = 1 and place_id = 10)$q$);
+update reservation set cree_at = now() - interval '11 minutes' where id = '10000000-0000-0000-0000-00000000000b';
+select pg_temp.doit_etre_vrai('T40 une réservation de plus de 10 minutes ne peut plus verrouiller de place',
+  $q$select not poser_verrou('10000000-0000-0000-0000-00000000000b', 11)$q$);
+update verrou_place set expire_at = now() - interval '1 second' where seance_id = 1 and place_id = 10;
+select pg_temp.doit_etre_vrai('T41 une réservation périmée ne peut pas reprendre son verrou expiré',
+  $q$select not poser_verrou('10000000-0000-0000-0000-00000000000b', 10)$q$);
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;
