@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:verifier": "prettier --check .",
+    "test": "vitest run --passWithNoTests",
+    "test:couverture": "vitest run --coverage --passWithNoTests"
   },
   "dependencies": {
     "next": "16.4.6",
@@ -14,11 +18,14 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^5.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
-    "typescript": "^5"
+    "prettier": "^3.10.1",
+    "typescript": "^5",
+    "vitest": "^5.1.0"
   }
 }
