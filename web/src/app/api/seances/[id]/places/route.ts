@@ -11,7 +11,10 @@ export async function GET(
 ): Promise<Response> {
   return traiterRequete(async () => {
     const seanceId = valider(schemaIdentifiantSeance, (await params).id);
-    const plan = await obtenirPlanDeSalle(new DepotSeancesSupabase(clientSupabaseServeur()), seanceId);
+    const plan = await obtenirPlanDeSalle(
+      new DepotSeancesSupabase(clientSupabaseServeur()),
+      seanceId,
+    );
     return reponseJson(plan);
   });
 }

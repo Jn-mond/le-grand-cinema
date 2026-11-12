@@ -133,7 +133,9 @@ describe("verrouillerPlaces", () => {
   });
 
   it("vérifie la sélection avant d'interroger la base", async () => {
-    await expect(verrouillerPlaces(depot, ID_RESERVATION, [], AVANT_ECHEANCE)).rejects.toMatchObject({
+    await expect(
+      verrouillerPlaces(depot, ID_RESERVATION, [], AVANT_ECHEANCE),
+    ).rejects.toMatchObject({
       code: "REQUETE_INVALIDE",
     });
     expect(depot.verrous.size).toBe(0);

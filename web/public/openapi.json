@@ -24,9 +24,7 @@
   "paths": {
     "/api/seances/{id}/places": {
       "get": {
-        "tags": [
-          "Séances"
-        ],
+        "tags": ["Séances"],
         "summary": "Plan de salle d'une séance",
         "description": "État de chaque place d'une séance publiée : libre, verrouillée (en cours de paiement par un autre client) ou vendue.",
         "operationId": "obtenirPlanDeSalle",
@@ -94,9 +92,7 @@
     },
     "/api/reservations": {
       "post": {
-        "tags": [
-          "Réservations"
-        ],
+        "tags": ["Réservations"],
         "summary": "Ouvrir une réservation",
         "description": "Crée une réservation en attente de paiement sur une séance publiée et à venir. Le client dispose de 10 minutes à partir de cet instant pour choisir ses places et payer (`expireAt`).",
         "operationId": "creerReservation",
@@ -183,9 +179,7 @@
     },
     "/api/reservations/{id}/verrous": {
       "post": {
-        "tags": [
-          "Réservations"
-        ],
+        "tags": ["Réservations"],
         "summary": "Bloquer les places choisies",
         "description": "Bloque toutes les places demandées jusqu'à l'échéance de la réservation, ou aucune si l'une d'elles n'est plus disponible. Les doublons sont ignorés. Un nouvel appel ne prolonge pas le délai (correctif C1).",
         "operationId": "verrouillerPlaces",
@@ -209,11 +203,7 @@
                 "$ref": "#/components/schemas/DemandeVerrouillage"
               },
               "example": {
-                "placeIds": [
-                  12,
-                  13,
-                  14
-                ]
+                "placeIds": [12, 13, 14]
               }
             }
           }
@@ -261,9 +251,7 @@
                   "title": "Certaines places ne sont plus disponibles : aucune place n'a été bloquée",
                   "status": 409,
                   "code": "PLACES_INDISPONIBLES",
-                  "placesRefusees": [
-                    13
-                  ]
+                  "placesRefusees": [13]
                 }
               }
             }
@@ -307,10 +295,7 @@
       "DemandeReservation": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "seanceId",
-          "email"
-        ],
+        "required": ["seanceId", "email"],
         "properties": {
           "seanceId": {
             "type": "integer",
@@ -330,13 +315,7 @@
       },
       "Reservation": {
         "type": "object",
-        "required": [
-          "id",
-          "reference",
-          "seanceId",
-          "statut",
-          "expireAt"
-        ],
+        "required": ["id", "reference", "seanceId", "statut", "expireAt"],
         "properties": {
           "id": {
             "type": "string",
@@ -352,12 +331,7 @@
           },
           "statut": {
             "type": "string",
-            "enum": [
-              "en_attente_paiement",
-              "confirmee",
-              "annulee",
-              "expiree"
-            ]
+            "enum": ["en_attente_paiement", "confirmee", "annulee", "expiree"]
           },
           "expireAt": {
             "type": "string",
@@ -369,9 +343,7 @@
       "DemandeVerrouillage": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "placeIds"
-        ],
+        "required": ["placeIds"],
         "properties": {
           "placeIds": {
             "type": "array",
@@ -386,11 +358,7 @@
       },
       "PlacesVerrouillees": {
         "type": "object",
-        "required": [
-          "reservationId",
-          "placeIds",
-          "expireAt"
-        ],
+        "required": ["reservationId", "placeIds", "expireAt"],
         "properties": {
           "reservationId": {
             "type": "string",
@@ -410,15 +378,7 @@
       },
       "Place": {
         "type": "object",
-        "required": [
-          "id",
-          "rangee",
-          "numero",
-          "accessiblePmr",
-          "positionX",
-          "positionY",
-          "etat"
-        ],
+        "required": ["id", "rangee", "numero", "accessiblePmr", "positionX", "positionY", "etat"],
         "properties": {
           "id": {
             "type": "integer"
@@ -434,34 +394,20 @@
             "type": "boolean"
           },
           "positionX": {
-            "type": [
-              "integer",
-              "null"
-            ]
+            "type": ["integer", "null"]
           },
           "positionY": {
-            "type": [
-              "integer",
-              "null"
-            ]
+            "type": ["integer", "null"]
           },
           "etat": {
             "type": "string",
-            "enum": [
-              "libre",
-              "verrouillee",
-              "vendue"
-            ]
+            "enum": ["libre", "verrouillee", "vendue"]
           }
         }
       },
       "PlanDeSalle": {
         "type": "object",
-        "required": [
-          "seanceId",
-          "places",
-          "resume"
-        ],
+        "required": ["seanceId", "places", "resume"],
         "properties": {
           "seanceId": {
             "type": "integer"
@@ -490,12 +436,7 @@
       },
       "Probleme": {
         "type": "object",
-        "required": [
-          "type",
-          "title",
-          "status",
-          "code"
-        ],
+        "required": ["type", "title", "status", "code"],
         "description": "Erreur au format RFC 9457 ; peut contenir des champs complémentaires (erreurs, placesRefusees, maximum, statut).",
         "properties": {
           "type": {

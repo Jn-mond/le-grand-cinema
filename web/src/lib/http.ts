@@ -51,6 +51,9 @@ export async function lireCorpsJson(requete: Request): Promise<unknown> {
   try {
     return await requete.json();
   } catch {
-    throw new ErreurApplication("REQUETE_INVALIDE", "Le corps de la requête doit être un JSON valide");
+    throw new ErreurApplication(
+      "REQUETE_INVALIDE",
+      "Le corps de la requête doit être un JSON valide",
+    );
   }
 }

@@ -13,7 +13,12 @@ function depotAvec(places: PlaceDeSeance[] | null): DepotSeances {
 describe("obtenirPlanDeSalle", () => {
   it("renvoie les places et le décompte par état", async () => {
     const plan = await obtenirPlanDeSalle(
-      depotAvec([place(1, "libre"), place(2, "vendue"), place(3, "libre"), place(4, "verrouillee")]),
+      depotAvec([
+        place(1, "libre"),
+        place(2, "vendue"),
+        place(3, "libre"),
+        place(4, "verrouillee"),
+      ]),
       7,
     );
     expect(plan.seanceId).toBe(7);
