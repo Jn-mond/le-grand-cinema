@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS la migration et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 et 0002) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -134,6 +134,20 @@ delete from verrou_place where seance_id = 1 and place_id = 2;
 update billet set statut = 'valide' where place_id = 2 and seance_id = 1;
 select pg_temp.doit_etre_vrai('T28 taux de remplissage : 1 place sur 24 = 4,17 %',
   $q$select taux_remplissage_pct = 4.17 from vue_remplissage_seance where seance_id = 1$q$);
+
+-- T29..T33 : ventes au guichet (migration 0002)
+insert into reservation (seance_id, email, canal, vendeur_id)
+  values (1, null, 'guichet', '00000000-0000-0000-0000-000000000003');
+select pg_temp.doit_etre_vrai('T29 vente au guichet sans e-mail acceptée',
+  $q$select count(*) = 1 from reservation where canal = 'guichet' and email is null$q$);
+select pg_temp.doit_echouer('T30 réservation en ligne sans e-mail refusée',
+  $q$insert into reservation (seance_id, email) values (1, null)$q$, '23514');
+select pg_temp.doit_echouer('T31 vente au guichet sans vendeur refusée',
+  $q$insert into reservation (seance_id, canal) values (1, 'guichet')$q$, '23514');
+select pg_temp.doit_echouer('T32 réservation en ligne avec vendeur refusée',
+  $q$insert into reservation (seance_id, email, vendeur_id) values (1, 'e@exemple.test', '00000000-0000-0000-0000-000000000003')$q$, '23514');
+select pg_temp.doit_echouer('T33 e-mail invalide refusé même au guichet',
+  $q$insert into reservation (seance_id, email, canal, vendeur_id) values (1, 'pas-un-email', 'guichet', '00000000-0000-0000-0000-000000000003')$q$, '23514');
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;
