@@ -35,7 +35,7 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 - **Application :** diffusion des changements au navigateur (Supabase Realtime) et rafraîchissement du plan en moins de 5 secondes : cela ne se mesure pas dans la base.
 
 ### E3 — Réservation et verrou de places (U1, U2)
-- **Base :** `reservation`, `verrou_place`, fonctions `poser_verrou()` et `liberer_verrous_expires()`. Le verrou dure 10 minutes (`expire_at`) ; un verrou expiré est écrasé par la réservation suivante sans attendre le nettoyage (test T16) ; la tâche planifiée libère les verrous expirés (test T17).
+- **Base :** `reservation`, `verrou_place`, fonctions `poser_verrou()` et `liberer_verrous_expires()`. Le verrou dure 10 minutes (`expire_at`) ; un verrou expiré est écrasé par la réservation suivante sans attendre le nettoyage (test T16) et ne peut pas être prolongé (correctif C1, tests T39 à T41) ; la tâche planifiée libère les verrous expirés (test T17).
 - **Application :** récapitulatif de la commande avant paiement, déclenchement de la tâche planifiée.
 
 ### E4 — Paiement en ligne sécurisé (U1, U2, U3)

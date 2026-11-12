@@ -2,7 +2,7 @@
 
 Ce document décrit la base de données de l'application de réservation : ce qu'elle contient, les règles qu'elle garantit elle-même, et comment la faire évoluer avec les bons outils.
 
-- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) et [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche)
+- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche) et [`0004_verrou_non_prolongeable.sql`](../db/migrations/0004_verrou_non_prolongeable.sql) (correctif du verrou)
 - Schéma modifiable : [`docs/schema_base_de_donnees.drawio`](schema_base_de_donnees.drawio) (ouvrir avec [draw.io](https://app.diagrams.net) ou l'extension VS Code « Draw.io Integration »)
 - Image du schéma : [`docs/schema_base_de_donnees.png`](schema_base_de_donnees.png)
 - Tests et jeu d'essai : [`db/`](../db/README.md)
@@ -151,7 +151,7 @@ Chaque règle importante est appliquée par la base elle-même, pas seulement pa
 | Une place ne peut pas être vendue deux fois pour la même séance. | Index unique partiel `billet_place_vendue_une_fois` sur (`seance_id`, `place_id`) pour les billets valides ou utilisés. Une place dont le billet est annulé redevient vendable. |
 | Une place n'est bloquée que par une réservation à la fois. | Clé primaire (`seance_id`, `place_id`) de `verrou_place`. |
 | Une place déjà vendue ne peut pas être bloquée. | Fonction `poser_verrou()` et déclencheur `verrou_place_verifier` (filet de sécurité si l'insertion ne passe pas par la fonction). |
-| Un blocage expire au bout de 10 minutes et la place est alors réutilisable. | Colonne `expire_at` ; `poser_verrou()` écrase un verrou expiré ; `liberer_verrous_expires()` (tâche planifiée) supprime les verrous expirés. |
+| Un blocage expire au bout de 10 minutes et la place est alors réutilisable. | Colonne `expire_at` ; `poser_verrou()` écrase un verrou expiré et ne prolonge jamais l'échéance (délai compté depuis la création de la réservation, migration 0004) ; `liberer_verrous_expires()` (tâche planifiée) supprime les verrous expirés. |
 | Une place appartient à la salle de la séance. | Clés étrangères composites : (`seance_id`, `salle_id`) vers `seance` et (`place_id`, `salle_id`) vers `place`. C'est pourquoi `salle_id` est répété dans `billet` et `verrou_place`. |
 | Le billet et son verrou appartiennent à la séance de leur réservation. | Clé étrangère composite (`reservation_id`, `seance_id`) vers `reservation`. |
 | Une salle ne peut pas projeter deux séances en même temps. | Contrainte d'exclusion `seance_pas_de_chevauchement` (extension `btree_gist`) ; les séances annulées sont ignorées. |
@@ -164,7 +164,7 @@ Chaque règle importante est appliquée par la base elle-même, pas seulement pa
 | Une adresse e-mail n'a qu'un compte, sans distinction de majuscules ; son format est vérifié. | Index unique sur `lower(email)` et contrainte `CHECK`. |
 | On ne supprime pas par erreur un film, une salle ou une séance utilisés. | Clés étrangères en `ON DELETE RESTRICT`. |
 
-Les 38 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
+Les 41 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
 
 ## 4. Choix de conception
 

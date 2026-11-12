@@ -19,6 +19,7 @@ createdb lgc_test
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0001_modele_initial.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0002_vente_guichet.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0003_reference_et_nom_client.sql
+psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0004_verrou_non_prolongeable.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/seeds/jeu_essai.sql
 ```
 
@@ -27,7 +28,7 @@ Sur Supabase : ouvrir le *SQL Editor*, coller le contenu de chaque fichier et l'
 ## Lancer les tests
 
 ```bash
-psql lgc_test -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql   # 38 tests ; la base n'est pas modifiée
+psql lgc_test -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql   # 41 tests ; la base n'est pas modifiée
 PGDATABASE=lgc_test ./db/tests/concurrence.sh                  # 20 clients, une seule place : 1 seul gagnant
 ```
 
