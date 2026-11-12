@@ -55,8 +55,8 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 - **Application :** publication visible sur le site en moins d'une minute.
 
 ### E8 — Suivi des réservations et ventes guichet (U4, U5)
-- **Base :** le guichet utilise les mêmes tables et les mêmes verrous que le site : une vente au guichet retire donc immédiatement la place du stock en ligne. La migration 0002 ajoute le canal (`en_ligne` ou `guichet`) et le vendeur, et rend l'e-mail facultatif au guichet (tests T29 à T33). L'index `reservation_seance_idx` permet de consulter les réservations d'une séance ; `vue_remplissage_seance` donne la fréquentation.
-- **Pourquoi la migration 0002 :** en rédigeant cette traçabilité, on a constaté que la migration 0001 exigeait un e-mail pour toute réservation, ce qui rendait la vente au guichet impossible. L'écart est corrigé et testé.
+- **Base :** le guichet utilise les mêmes tables et les mêmes verrous que le site : une vente au guichet retire donc immédiatement la place du stock en ligne. La migration 0002 ajoute le canal (`en_ligne` ou `guichet`) et le vendeur, et rend l'e-mail facultatif au guichet (tests T29 à T33). La migration 0003 ajoute une référence courte et le nom du client, et la fonction `rechercher_reservations()` retrouve une réservation par nom, e-mail ou référence (tests T34 à T38). L'index `reservation_seance_idx` permet de consulter les réservations d'une séance ; `vue_remplissage_seance` donne la fréquentation.
+- **Pourquoi les migrations 0002 et 0003 :** en rédigeant cette traçabilité, on a constaté que la migration 0001 exigeait un e-mail pour toute réservation, ce qui rendait la vente au guichet impossible. De même, la story « Retrouver une réservation (nom, e-mail ou référence) » n'était pas réalisable sans nom de client ni référence lisible. Les deux écarts sont corrigés et testés.
 
 ### E9 — Pilotage : remplissage et indicateurs (U5)
 - **Base :** `vue_remplissage_seance` calcule le taux de remplissage avec la définition du backlog : places occupées (billets valides ou utilisés) divisées par places offertes (places actives de la salle).
