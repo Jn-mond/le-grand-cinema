@@ -2,7 +2,7 @@
 
 Ce document décrit la base de données de l'application de réservation : ce qu'elle contient, les règles qu'elle garantit elle-même, et comment la faire évoluer avec les bons outils.
 
-- Script de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql)
+- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet)
 - Schéma modifiable : [`docs/schema_base_de_donnees.drawio`](schema_base_de_donnees.drawio) (ouvrir avec [draw.io](https://app.diagrams.net) ou l'extension VS Code « Draw.io Integration »)
 - Image du schéma : [`docs/schema_base_de_donnees.png`](schema_base_de_donnees.png)
 - Tests et jeu d'essai : [`db/`](../db/README.md)
@@ -17,7 +17,8 @@ La version ci-dessous est un diagramme texte (Mermaid) que GitHub affiche direct
 
 ```mermaid
 erDiagram
-    utilisateur |o--o{ reservation : "effectue"
+    utilisateur |o--o{ reservation : "effectue (client)"
+    utilisateur |o--o{ reservation : "vend (guichet)"
     film ||--o{ seance : "est projeté"
     salle ||--o{ seance : "accueille"
     salle ||--|{ place : "contient"
@@ -70,6 +71,8 @@ erDiagram
         uuid id PK
         bigint seance_id FK
         uuid utilisateur_id FK
+        uuid vendeur_id FK
+        canal_reservation canal
         text email
         statut_reservation statut
     }
@@ -114,7 +117,7 @@ erDiagram
 | `salle` | Salles du cinéma (premium/IMAX, standard, VIP, événementielle). | `id` | `modulable` indique une salle réservable en groupe ou pour un événement. |
 | `place` | Un siège d'une salle, identifié par rangée + numéro. | `id` | Unique par (salle, rangée, numéro). `accessible_pmr`, `position_x` et `position_y` servent au plan de salle. |
 | `seance` | Projection d'un film dans une salle à une date et une heure. | `id` | Prix en centimes. Statut : brouillon, publiée, annulée. Deux séances non annulées ne peuvent pas se chevaucher dans la même salle. |
-| `reservation` | Ensemble de places demandées pour une séance. | `id` (uuid) | `utilisateur_id` est vide pour une réservation sans compte (« invité ») ; l'e-mail permet alors de retrouver les billets. |
+| `reservation` | Ensemble de places demandées pour une séance. | `id` (uuid) | `canal` distingue la vente en ligne de la vente au guichet. En ligne, l'e-mail est obligatoire et `utilisateur_id` est vide pour une réservation sans compte (« invité ») : l'e-mail permet de retrouver les billets. Au guichet, l'e-mail est facultatif et `vendeur_id` désigne le membre du personnel qui a vendu. |
 | `commande` | Tentative de paiement associée à une réservation. | `id` (uuid) | Montant en centimes. Plusieurs tentatives possibles, une seule peut être « payée ». |
 | `evenement_paiement` | Journal des messages reçus du prestataire de paiement. | `id` (texte fourni par le prestataire) | Sert à ne traiter chaque message qu'une fois (idempotence). Aucune clé étrangère, volontairement. |
 | `verrou_place` | Blocage temporaire (10 minutes) d'une place pendant le paiement. | (`seance_id`, `place_id`) | Une place ne peut être bloquée que par une seule réservation à la fois. |
@@ -133,6 +136,7 @@ Deux vues facilitent la lecture : `vue_places_seance` donne l'état de chaque pl
 | `reservation.statut` | en_attente_paiement, confirmee, annulee, expiree |
 | `commande.statut` | en_attente, payee, echouee, abandonnee |
 | `billet.statut` | valide, utilise, annule |
+| `reservation.canal` | en_ligne, guichet |
 
 Les cinq rôles recouvrent les profils du backlog : spectateur = U1 et U2 (U2 pouvant réserver sans compte), professionnel = U3, accueil = U4, programmateur = U5, administrateur = U6.
 
@@ -153,10 +157,11 @@ Chaque règle importante est appliquée par la base elle-même, pas seulement pa
 | Une réservation « confirmée » a une date de confirmation, une commande « payée » a une date de paiement, un billet « utilisé » a une date d'utilisation. | Contraintes `CHECK` de cohérence. |
 | Une réservation ne peut être payée qu'une fois. | Index unique partiel `commande_une_seule_payee`. |
 | Un message du prestataire de paiement n'est traité qu'une fois. | Clé primaire de `evenement_paiement` : un doublon est refusé à l'insertion. |
+| Une réservation en ligne a toujours une adresse e-mail ; une vente au guichet a toujours un vendeur et peut se passer d'e-mail (le stock de places est le même que celui du site). | Contraintes `CHECK` `reservation_email_coherent` et `reservation_vendeur_coherent` (migration 0002). |
 | Une adresse e-mail n'a qu'un compte, sans distinction de majuscules ; son format est vérifié. | Index unique sur `lower(email)` et contrainte `CHECK`. |
 | On ne supprime pas par erreur un film, une salle ou une séance utilisés. | Clés étrangères en `ON DELETE RESTRICT`. |
 
-Les 28 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
+Les 33 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
 
 ## 4. Choix de conception
 
@@ -164,7 +169,8 @@ Les 28 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérif
 - **Identifiants uuid pour les données personnelles ou sensibles** (utilisateurs, réservations, commandes, billets) : ils ne se devinent pas et ne révèlent pas le volume de ventes. **Identifiants numériques pour les référentiels** (films, salles, places, séances), plus compacts et plus lisibles.
 - **Horodatages avec fuseau** (`timestamptz`) : stockés en UTC, affichés dans le fuseau du cinéma par l'application.
 - **Capacité d'une salle non stockée** : c'est le nombre de ses places actives (`vue_remplissage_seance`), pour éviter deux valeurs qui se contredisent.
-- **Réservation sans compte** : `reservation.utilisateur_id` peut être vide ; l'e-mail est alors obligatoire pour envoyer et retrouver les billets.
+- **Réservation sans compte** : `reservation.utilisateur_id` peut être vide ; en ligne, l'e-mail est alors obligatoire pour envoyer et retrouver les billets.
+- **Vente au guichet sur le même stock** : le guichet passe par les mêmes tables et les mêmes verrous que le site, donc une place vendue au guichet disparaît immédiatement du plan de salle en ligne. Elle se distingue par son canal, pas par un stock séparé.
 - **Verrou séparé du billet** : le blocage de 10 minutes est temporaire et ne doit jamais être confondu avec une vente ; il disparaît à la confirmation du paiement et le billet est alors créé.
 
 ## 5. Hors périmètre de cette version
@@ -192,7 +198,7 @@ Les 28 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérif
 ### Faire évoluer le modèle sans rien casser
 
 1. Créer une branche selon la convention (par exemple `feature/rsv-12-tarif-reduit`).
-2. **Ne jamais modifier** `0001_modele_initial.sql` une fois appliqué sur une base partagée : ajouter un nouveau fichier numéroté, par exemple `db/migrations/0002_tarifs.sql`, qui contient uniquement le changement (`alter table …`, `create table …`).
+2. **Ne jamais modifier** un fichier de migration (`0001`, `0002`…) une fois appliqué sur une base partagée : ajouter un nouveau fichier numéroté, par exemple `db/migrations/0003_tarifs.sql`, qui contient uniquement le changement (`alter table …`, `create table …`).
 3. Essayer la migration sur une base locale ou de test, charger le jeu d'essai et lancer les tests.
 4. Mettre à jour le schéma (`.drawio` et `.png`) et ce document dans la même Pull Request que la migration.
 5. Après revue, appliquer la migration à l'environnement suivant.
