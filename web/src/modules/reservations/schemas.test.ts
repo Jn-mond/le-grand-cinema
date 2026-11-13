@@ -29,6 +29,24 @@ describe("schemaCreationReservation", () => {
     });
   });
 
+  it("refuse les domaines mal formés (point en double, en tête ou en fin)", () => {
+    for (const email of ["a@b..c", "a@.b.c", "a@b.c.", "a@b"]) {
+      expect(
+        erreurLevee(() => valider(schemaCreationReservation, { seanceId: 1, email })),
+      ).toMatchObject({ code: "REQUETE_INVALIDE" });
+    }
+  });
+
+  it("rejette en temps linéaire une adresse piégée de 40 000 caractères (correctif C2, ReDoS)", () => {
+    const piege = "a@" + "a.".repeat(20_000) + "@";
+    const debut = performance.now();
+    expect(
+      erreurLevee(() => valider(schemaCreationReservation, { seanceId: 1, email: piege })),
+    ).toMatchObject({ code: "REQUETE_INVALIDE" });
+    // L'ancienne expression mettait environ 0,7 s sur cette entrée ; la nouvelle moins d'une milliseconde.
+    expect(performance.now() - debut).toBeLessThan(100);
+  });
+
   it("refuse un champ inconnu (protection contre l'envoi de données inattendues)", () => {
     const erreur = erreurLevee(() =>
       valider(schemaCreationReservation, {
