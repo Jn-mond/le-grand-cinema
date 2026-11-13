@@ -1,0 +1,117 @@
+# Vérification automatique : lancée à chaque Pull Request et à chaque envoi sur develop ou main.
+# Une Pull Request ne doit être fusionnée que si tous les jobs sont verts.
+name: Intégration continue
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  nom-de-branche:
+    name: Convention de nommage de la branche
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier le nom de la branche
+        env:
+          BRANCHE: ${{ github.head_ref }}
+        run: |
+          motif='^((feature|fix|docs|chore|refactor|test|hotfix)/[a-z0-9]+(-[a-z0-9]+)*|release/[0-9]+\.[0-9]+\.[0-9]+|develop)$'
+          if [[ "$BRANCHE" =~ $motif ]]; then
+            echo "Nom de branche conforme : $BRANCHE"
+          else
+            echo "::error::Nom de branche non conforme : $BRANCHE (voir CONTRIBUTING.md)"
+            exit 1
+          fi
+
+  base-de-donnees:
+    name: Base de données (migrations et tests)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lgc_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: lgc_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Appliquer les migrations puis le jeu d'essai
+        run: |
+          for f in db/migrations/*.sql db/seeds/jeu_essai.sql; do
+            echo "== $f"
+            psql -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+      - name: Tests d'intégrité
+        run: psql -v ON_ERROR_STOP=1 -q -f db/tests/contraintes.sql
+      - name: Test de concurrence
+        run: bash db/tests/concurrence.sh
+
+  application:
+    name: Application web (format, lint, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Installer les dépendances
+        run: npm ci
+      - name: Vérifier le formatage
+        run: npm run format:verifier
+      - name: Analyse statique (ESLint)
+        run: npm run lint
+      - name: Tests unitaires avec couverture
+        run: npm run test:couverture
+      - name: Compilation (TypeScript et build Next.js)
+        run: npm run build
+      - name: Conserver le rapport de couverture
+        uses: actions/upload-artifact@v4
+        with:
+          name: couverture
+          path: web/coverage/lcov.info
+          if-no-files-found: ignore
+
+  sonar:
+    name: Qualité du code (SonarQube Cloud)
+    needs: application
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Récupérer le rapport de couverture
+        uses: actions/download-artifact@v4
+        with:
+          name: couverture
+          path: web/coverage
+        continue-on-error: true
+      - name: Analyse SonarQube Cloud
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v8
+      - name: Analyse ignorée
+        if: env.SONAR_TOKEN == ''
+        run: |
+          echo "::warning::Secret SONAR_TOKEN absent, analyse SonarQube Cloud non lancée (voir docs/qualite.md)."
