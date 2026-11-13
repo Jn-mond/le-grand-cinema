@@ -79,7 +79,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Installer les dépendances
-        run: npm ci
+        # --ignore-scripts : aucun script d'installation des dépendances ne s'exécute (attaque par la chaîne d'approvisionnement)
+        run: npm ci --ignore-scripts
       - name: Vérifier le formatage
         run: npm run format:verifier
       - name: Analyse statique (ESLint)
@@ -113,7 +114,8 @@ jobs:
         continue-on-error: true
       - name: Analyse SonarQube Cloud
         if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v8
+        # Action tierce figée par l'empreinte de son commit : un tag peut être déplacé, pas une empreinte
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
       - name: Analyse ignorée
         if: env.SONAR_TOKEN == ''
         run: |
