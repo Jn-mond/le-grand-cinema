@@ -35,3 +35,33 @@ select poser_verrou('<réservation>', 7);                                  -- ap
 
 ### Risque voisin, non traité ici
 Un paiement qui aboutit **après** l'expiration du verrou (le client a payé à la 11e minute) peut trouver sa place prise par quelqu'un d'autre. La base empêche la double vente (index unique sur les billets), mais le client aurait payé sans billet. Mesure prévue côté application : à la réception de la confirmation du prestataire, tenter de reposer le verrou ; si la place n'est plus libre, déclencher un remboursement (EPIC E11, V1).
+
+## C2 — Expression régulière vulnérable au déni de service (ReDoS)
+
+| | |
+|---|---|
+| **Où** | `web/src/modules/reservations/schemas.ts`, validation de l'adresse e-mail à l'ouverture d'une réservation. |
+| **Détecté par** | SonarQube Cloud, règle « super-linear regex » (fiabilité, gravité moyenne). |
+| **Gravité** | Élevée en pratique : l'API est publique, un seul appel suffit à occuper le serveur. |
+| **Statut** | Corrigé. |
+
+### Symptôme et cause
+L'ancienne expression `^[^@\s]+@[^@\s]+\.[^@\s]+$` laisse le domaine et son extension accepter tous les deux des points. Sur une entrée qui échoue tout au bout, le moteur essaie chaque point comme séparateur possible et relit la fin de chaîne à chaque essai : le temps croît avec le carré de la longueur. La limite de 254 caractères du schéma ne protège pas, car zod applique toutes les vérifications, y compris l'expression, même quand la longueur est déjà refusée.
+
+### Reproduction (mesurée)
+Entrée piégée : `"a@" + "a.".repeat(n) + "@"`.
+
+| Longueur | Ancienne expression | Nouvelle expression |
+|---|---|---|
+| 10 000 caractères | 24 ms | 0,04 ms |
+| 40 000 caractères | 570 à 740 ms | 0,4 ms |
+
+Le corps d'une requête pouvant atteindre plusieurs mégaoctets, quelques appels suffisaient à bloquer les fonctions serveur.
+
+### Correction
+`^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$` : le domaine est découpé en segments qui excluent le point, si bien qu'il n'existe qu'une seule façon de lire la chaîne et l'évaluation reste linéaire. Effet de bord assumé : les domaines mal formés (`a@b..c`, `a@.b.c`, `a@b.c.`) sont désormais refusés. La contrainte de la base n'est pas concernée : le moteur d'expressions régulières de PostgreSQL ne procède pas par retour arrière.
+
+### Validation
+- Deux tests ajoutés dans `schemas.test.ts` : refus des domaines mal formés, et rejet d'une adresse piégée de 40 000 caractères en moins de 100 ms.
+- Contre-épreuve : avec l'ancienne expression, ces deux tests échouent.
+- Nouvelle analyse SonarQube Cloud : le problème doit passer à l'état « corrigé ».

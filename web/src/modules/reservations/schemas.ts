@@ -2,8 +2,13 @@ import { z } from "zod";
 import { ErreurApplication } from "../../lib/erreurs";
 import { MAX_PLACES_PAR_RESERVATION } from "./regles";
 
-/** Même règle que la contrainte de la base (reservation_email_coherent). */
-const MOTIF_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+/**
+ * Adresse e-mail : partie locale, « @ », puis un domaine fait de segments séparés par des points.
+ * Chaque segment exclut le point : l'expression s'évalue en temps linéaire, sans retour arrière
+ * exponentiel (ReDoS, correctif C2). Elle est un peu plus stricte que la contrainte de la base,
+ * qui reste le dernier rempart.
+ */
+const MOTIF_EMAIL = /^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$/;
 const MOTIF_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const schemaCreationReservation = z

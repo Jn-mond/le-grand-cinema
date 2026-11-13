@@ -26,6 +26,20 @@ Une Pull Request ne se fusionne que si tous les jobs sont verts. Pour l'imposer,
 
 Sans le secret `SONAR_TOKEN`, le job `sonar` affiche un avertissement et n'échoue pas : le reste de la vérification continue de fonctionner.
 
+## Première analyse SonarQube Cloud et traitement
+
+La première analyse a relevé 7 problèmes (4 de sécurité, 3 de fiabilité, aucun de maintenabilité, 0 % de duplication). Chacun a été examiné puis corrigé dans la branche `fix/sonar-securite-fiabilite` :
+
+| Fichier | Problème signalé | Risque réel | Correction |
+|---|---|---|---|
+| `.github/workflows/ci.yml` | Action tierce référencée par un tag (sécurité, élevée) | Un tag peut être déplacé vers un autre code : si le compte de l'éditeur était compromis, du code malveillant s'exécuterait avec le jeton Sonar. | Action figée par l'empreinte complète de son commit (`v8.5.0`). Les actions officielles de GitHub restent référencées par version majeure. |
+| `.github/workflows/ci.yml` | `npm ci` sans `--ignore-scripts` (sécurité, moyenne) | Un paquet piégé pourrait exécuter un script à l'installation. | `npm ci --ignore-scripts`. |
+| `web/public/docs-api.html` (×2) | Fichiers du CDN chargés sans contrôle d'intégrité (sécurité, faible) | Si le CDN était compromis, un script modifié s'exécuterait sur le domaine de l'application. | Attributs `integrity` (empreinte SHA-384, vérifiée contre la version officielle) et `crossorigin="anonymous"` : le navigateur refuse tout fichier modifié. |
+| `db/tests/concurrence.sh` (×2) | `[ ]` au lieu de `[[ ]]` en Bash (fiabilité) | Faible ici (variables entre guillemets), mais `[[ ]]` évite des erreurs de découpage et de motifs. | Condition réécrite avec `[[ … && … ]]`. |
+| `web/src/modules/reservations/schemas.ts` | Expression régulière à retour arrière super-linéaire (fiabilité, moyenne) | **Réel** : déni de service possible par une seule requête. | Correctif C2, détaillé dans [`correctifs.md`](correctifs.md). |
+
+Le périmètre analysé (`sonar.sources`) couvre tout le dépôt : application, workflow, scripts SQL et shell, page de documentation. Réduire ce périmètre aurait fait disparaître les problèmes sans les corriger.
+
 ## Couverture de tests
 
 - Rapport lisible : `web/coverage/index.html` après `npm run test:couverture`.

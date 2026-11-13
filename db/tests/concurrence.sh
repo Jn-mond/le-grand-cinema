@@ -24,4 +24,4 @@ LIGNES=$("${PSQL[@]}" -c "select count(*) from verrou_place where seance_id = 1 
   delete from reservation where email like 'concurrence-%@exemple.test';"
 
 echo "Succès : $GAGNANTS sur $N — verrous en base : $LIGNES"
-if [ "$GAGNANTS" -eq 1 ] && [ "$LIGNES" -eq 1 ]; then echo "OK"; else echo "ÉCHEC"; exit 1; fi
+if [[ "$GAGNANTS" -eq 1 && "$LIGNES" -eq 1 ]]; then echo "OK"; else echo "ÉCHEC"; exit 1; fi
