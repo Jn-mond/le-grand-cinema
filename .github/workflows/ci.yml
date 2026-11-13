@@ -10,11 +10,14 @@ on:
 permissions:
   contents: read
 
+# Versions figées : runner Ubuntu 24.04 (et non « latest », qui change de version sans prévenir)
+# et actions officielles exécutées sous Node.js 24 (Node.js 20 est en fin de vie sur GitHub Actions).
+
 jobs:
   nom-de-branche:
     name: Convention de nommage de la branche
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Vérifier le nom de la branche
         env:
@@ -30,7 +33,7 @@ jobs:
 
   base-de-donnees:
     name: Base de données (migrations et tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -50,7 +53,7 @@ jobs:
       PGPASSWORD: postgres
       PGDATABASE: lgc_test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Appliquer les migrations puis le jeu d'essai
         run: |
           for f in db/migrations/*.sql db/seeds/jeu_essai.sql; do
@@ -64,13 +67,13 @@ jobs:
 
   application:
     name: Application web (format, lint, tests, build)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -86,7 +89,7 @@ jobs:
       - name: Compilation (TypeScript et build Next.js)
         run: npm run build
       - name: Conserver le rapport de couverture
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: couverture
           path: web/coverage/lcov.info
@@ -95,15 +98,15 @@ jobs:
   sonar:
     name: Qualité du code (SonarQube Cloud)
     needs: application
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Récupérer le rapport de couverture
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: couverture
           path: web/coverage
