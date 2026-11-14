@@ -65,3 +65,44 @@ Le corps d'une requête pouvant atteindre plusieurs mégaoctets, quelques appels
 - Deux tests ajoutés dans `schemas.test.ts` : refus des domaines mal formés, et rejet d'une adresse piégée de 40 000 caractères en moins de 100 ms.
 - Contre-épreuve : avec l'ancienne expression, ces deux tests échouent.
 - Nouvelle analyse SonarQube Cloud : le problème doit passer à l'état « corrigé ».
+
+## C3 — Retour sur une séance : la réservation expirée revenait en boucle (E3)
+
+| | |
+|---|---|
+| **Où** | Page de réservation `/seances/{id}`, composant `plan-de-salle.tsx`. |
+| **Détecté par** | Recette manuelle de la release 0.3.0 (parcours complet d'un spectateur connecté). |
+| **Gravité** | Moyenne : aucune donnée n'est faussée, mais le spectateur ne peut plus réserver cette séance sans recharger la page. |
+| **Statut** | Corrigé. |
+
+### Symptôme
+Parcours : bloquer deux places, laisser passer les 10 minutes (« Délai dépassé »), aller dans « Mon espace » (réservation « Expirée »), revenir au programme, cliquer sur « Réserver » pour la même séance. La page réaffiche l'ancien récapitulatif « Places bloquées … Délai dépassé » au lieu du plan de salle, alors que l'en-tête annonce bien 24 places libres. Chaque nouvel essai ramène au même écran.
+
+### Recherche de la cause
+L'en-tête est juste : les données du serveur sont relues. C'est l'état du navigateur qui est ancien. Avec `cacheComponents`, Next.js 16 ne détruit pas une page quittée : il la cache avec le composant React `<Activity>` pour la retrouver intacte au retour (saisie, défilement, messages). Le résultat de l'action « bloquer mes places » (`useActionState`) était donc conservé, y compris après son expiration.
+
+### Reproduction
+Banc d'essai hors dépôt : le composant réel est rendu dans Chromium (Playwright) à l'intérieur d'un `<Activity>`, avec une action simulée qui bloque les places pour 3 secondes. Après l'expiration, on masque puis on réaffiche la page, comme une navigation aller-retour : l'ancienne version réaffiche « Places bloquées », la nouvelle affiche « Choisissez vos places ».
+
+### Correction
+- Quand le spectateur quitte la page, un refus, une erreur ou des places dont le délai est dépassé sont oubliés (`resultatAOublier()`) : au retour, le formulaire repart de zéro. Des places encore bloquées restent affichées avec leur compte à rebours, ce qui est le comportement voulu.
+- À l'expiration, un bouton « Choisir de nouvelles places » permet de recommencer sans quitter la page.
+- Un message de refus reste affiché quand le plan se met à jour après ce refus : seul le départ de la page le fait disparaître.
+
+### Validation
+- Trois tests unitaires sur `resultatAOublier()` dans `regles.test.ts`.
+- Banc d'essai navigateur : les quatre scénarios (aller-retour pendant le délai, expiration puis bouton, aller-retour après expiration, refus) donnent le résultat attendu, sans erreur dans la console.
+
+## C4 — Une réservation non payée restait « en attente de paiement » (E3, E6)
+
+| | |
+|---|---|
+| **Où** | Espace client `/espace`. |
+| **Gravité** | Faible : affichage trompeur, sans effet sur les places. |
+| **Statut** | Corrigé à l'affichage ; mise à jour en base prévue avec le paiement (E4). |
+
+### Symptôme et cause
+Rien ne fait passer une réservation de `en_attente_paiement` à `expiree` dans la base : la tâche planifiée libère les verrous, pas les réservations. Sans paiement, le client voyait donc indéfiniment « En attente de paiement » pour des places déjà libérées.
+
+### Correction et validation
+`statutAffiche()` affiche « Expirée » dès que le délai de 10 minutes est dépassé. Deux tests unitaires dans `regles.test.ts` ; vérifié en recette (LGC-LKJCDG passée de « En attente de paiement » à « Expirée »). La mise à jour du statut en base sera faite par la tâche planifiée lors de l'arrivée du paiement (E4).

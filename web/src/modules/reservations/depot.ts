@@ -17,6 +17,8 @@ export interface NouvelleReservation {
   seanceId: number;
   email: string;
   nomClient?: string;
+  /** Compte de la personne connectée ; absent pour une réservation « invité » (E6). */
+  utilisateurId?: string;
 }
 
 export interface DepotReservations {

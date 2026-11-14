@@ -50,7 +50,7 @@ export function FormulaireSeance({ films, salles }: { films: Choix[]; salles: Ch
           {etat.message}
         </p>
       ) : null}
-      <button type="submit" disabled={enCours}>
+      <button type="submit" disabled={enCours} aria-busy={enCours}>
         {enCours ? "Enregistrement…" : "Programmer la séance"}
       </button>
     </form>
