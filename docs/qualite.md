@@ -26,6 +26,10 @@ Une Pull Request ne se fusionne que si tous les jobs sont verts. Pour l'imposer,
 
 Sans le secret `SONAR_TOKEN`, le job `sonar` affiche un avertissement et n'échoue pas : le reste de la vérification continue de fonctionner.
 
+**Ce que le plan gratuit analyse.** SonarQube Cloud gratuit n'analyse que la branche principale (`main`) et les Pull Requests. Les envois sur `develop` sont reçus mais pas affichés (« Not analyzed »), et une Pull Request qui vise `develop` peut apparaître sans résultat, faute de branche de référence analysée. Le tableau de bord qui fait foi est donc celui de `main`, mis à jour à chaque version publiée.
+
+**Jeton.** Le jeton personnel `SONAR_TOKEN` expire au bout de 90 jours. À l'expiration, l'analyse Sonar s'arrête (le reste de la vérification continue) : générer un nouveau jeton et mettre à jour le secret GitHub. Les jetons d'organisation, plus sûrs car non rattachés à une personne, sont réservés aux plans payants.
+
 ## Première analyse SonarQube Cloud et traitement
 
 La première analyse a relevé 7 problèmes (4 de sécurité, 3 de fiabilité, aucun de maintenabilité, 0 % de duplication). Chacun a été examiné puis corrigé dans la branche `fix/sonar-securite-fiabilite` :
@@ -39,6 +43,19 @@ La première analyse a relevé 7 problèmes (4 de sécurité, 3 de fiabilité, a
 | `web/src/modules/reservations/schemas.ts` | Expression régulière à retour arrière super-linéaire (fiabilité, moyenne) | **Réel** : déni de service possible par une seule requête. | Correctif C2, détaillé dans [`correctifs.md`](correctifs.md). |
 
 Le périmètre analysé (`sonar.sources`) couvre tout le dépôt : application, workflow, scripts SQL et shell, page de documentation. Réduire ce périmètre aurait fait disparaître les problèmes sans les corriger.
+
+### Résultat après correction (version 0.1.1, branche `main`)
+
+| Indicateur | Première analyse | Après la version 0.1.1 |
+|---|---|---|
+| Quality Gate | Non calculé | **Passed** |
+| Sécurité | C (4 problèmes) | **A (0)** |
+| Fiabilité | A (3 problèmes) | **A (0)** |
+| Maintenabilité | A (0) | A (0) |
+| Couverture | Non mesurée | **97,8 %** |
+| Duplication | 0,0 % | 0,0 % |
+
+Les 7 problèmes sont passés à l'état « corrigé » à l'analyse suivante, sans être marqués comme « acceptés » : chacun a été réellement corrigé. La couverture affichée par Sonar (97,8 %) diffère légèrement de celle de Vitest (100 % du code métier), car Sonar mesure sur l'ensemble des fichiers analysés.
 
 ## Couverture de tests
 

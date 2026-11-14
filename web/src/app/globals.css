@@ -47,3 +47,175 @@ a {
     color-scheme: dark;
   }
 }
+
+/* ---- Le Grand Cinéma ---------------------------------------------------- */
+:root {
+  --accent: #b3261e;
+  --bordure: #d4d4d8;
+  --discret: #6b7280;
+  --succes: #15803d;
+}
+
+body {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+}
+
+.en-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.marque {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--accent);
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.navigation a:hover,
+.lien:hover {
+  text-decoration: underline;
+}
+
+.contenu {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+h1 {
+  font-size: 1.8rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.discret {
+  color: var(--discret);
+}
+
+.carte {
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.etroite {
+  max-width: 420px;
+  width: 100%;
+  margin: 2rem auto;
+}
+
+.colonnes {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 2fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .colonnes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.liste-seances {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.titre-film {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.formulaire {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.formulaire input,
+.formulaire select {
+  padding: 0.5rem;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.formulaire .case {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.formulaire button {
+  margin-top: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.formulaire button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.lien {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
+}
+
+.erreur {
+  color: var(--accent);
+}
+
+.succes {
+  color: var(--succes);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--bordure);
+}
