@@ -6,6 +6,7 @@ import {
   echeanceReservation,
   estExpiree,
   normaliserPlaces,
+  resultatAOublier,
   statutAffiche,
 } from "./regles";
 
@@ -40,6 +41,26 @@ describe("statutAffiche", () => {
     const tard = new Date("2026-12-01T00:00:00.000Z");
     expect(statutAffiche("confirmee", CREATION, tard)).toBe("confirmee");
     expect(statutAffiche("annulee", CREATION, tard)).toBe("annulee");
+  });
+});
+
+describe("resultatAOublier", () => {
+  const maintenant = new Date("2026-11-20T18:05:00.000Z");
+  const bloquee = (expireAt: string) => ({ statut: "bloquee", expireAt });
+
+  it("garde des places encore bloquées", () => {
+    expect(resultatAOublier(bloquee("2026-11-20T18:10:00.000Z"), maintenant)).toBe(false);
+  });
+
+  it("oublie des places dont le délai est dépassé (correctif C3)", () => {
+    expect(resultatAOublier(bloquee("2026-11-20T18:05:00.000Z"), maintenant)).toBe(true);
+    expect(resultatAOublier(bloquee("2026-11-20T18:00:00.000Z"), maintenant)).toBe(true);
+  });
+
+  it("oublie un refus ou une erreur, pas un formulaire en cours", () => {
+    expect(resultatAOublier({ statut: "refus" }, maintenant)).toBe(true);
+    expect(resultatAOublier({ statut: "erreur" }, maintenant)).toBe(true);
+    expect(resultatAOublier({ statut: "initial" }, maintenant)).toBe(false);
   });
 });
 

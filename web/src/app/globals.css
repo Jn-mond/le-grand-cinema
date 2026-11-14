@@ -241,6 +241,7 @@ td {
 
 .bouton {
   display: inline-block;
+  border: none;
   margin-top: 0.5rem;
   padding: 0.4rem 0.9rem;
   border-radius: 6px;

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { formaterPrix } from "@/lib/dates";
-import { MAX_PLACES_PAR_RESERVATION } from "@/modules/reservations/regles";
+import { MAX_PLACES_PAR_RESERVATION, resultatAOublier } from "@/modules/reservations/regles";
 import type { PlaceDeSeance } from "@/modules/seances/depot";
 import { descriptionPlace, libellePlace, organiserPlan } from "@/modules/seances/plan";
 import { reserverPlaces, type EtatReservation } from "./actions";
@@ -17,13 +17,49 @@ interface Props {
   emailConnecte: string | null;
 }
 
-export function PlanDeSalle({ seanceId, places, prixCentimes, emailConnecte }: Props) {
+/**
+ * Next.js garde l'état d'une page quittée (Activity) pour le retrouver au retour. Une réservation
+ * encore valable reste donc affichée avec son compte à rebours ; une réservation expirée ou
+ * refusée est oubliée : changer la clé repart d'un formulaire vierge.
+ */
+export function PlanDeSalle(props: Props) {
+  const [essai, setEssai] = useState(0);
+  // Fonction stable : l'effet de nettoyage ne doit s'exécuter qu'au départ de la page.
+  const recommencer = useCallback(() => setEssai((n) => n + 1), []);
+  return <Reservation key={essai} {...props} onRecommencer={recommencer} />;
+}
+
+function Reservation({
+  seanceId,
+  places,
+  prixCentimes,
+  emailConnecte,
+  onRecommencer,
+}: Props & { onRecommencer: () => void }) {
   const [choix, setChoix] = useState<number[]>([]);
   // Champs contrôlés : la saisie reste en place si la réservation est refusée.
   const [email, setEmail] = useState("");
   const [nomClient, setNomClient] = useState("");
   const [etat, action, enCours] = useActionState(reserverPlaces, ETAT_INITIAL);
   const bloquee = etat.statut === "bloquee";
+
+  // Dernier résultat connu, lu au moment où la page est quittée.
+  const dernierEtat = useRef(etat);
+  useEffect(() => {
+    dernierEtat.current = etat;
+  }, [etat]);
+
+  // Page quittée : on oublie un refus ou une réservation expirée, pas une réservation en cours.
+  useLayoutEffect(() => {
+    return () => {
+      if (resultatAOublier(dernierEtat.current)) onRecommencer();
+    };
+  }, [onRecommencer]);
+
+  function recommencer() {
+    dernierEtat.current = ETAT_INITIAL; // évite une seconde remise à zéro au démontage
+    onRecommencer();
+  }
 
   // Une place prise entre-temps (plan rafraîchi après un refus) sort de la sélection.
   const libres = new Set(places.filter((p) => p.etat === "libre").map((p) => p.id));
@@ -53,7 +89,9 @@ export function PlanDeSalle({ seanceId, places, prixCentimes, emailConnecte }: P
         </p>
         <p>Places : {libelles(etat.placeIds ?? [])}</p>
         <p>Total : {formaterPrix((etat.placeIds?.length ?? 0) * prixCentimes)}</p>
-        {etat.expireAt ? <CompteARebours expireAt={etat.expireAt} /> : null}
+        {etat.expireAt ? (
+          <CompteARebours expireAt={etat.expireAt} onRecommencer={recommencer} />
+        ) : null}
         <p className="discret">
           Le paiement en ligne (EPIC E4) arrive dans une prochaine version : passé le délai, les
           places sont libérées automatiquement.
@@ -174,7 +212,13 @@ export function PlanDeSalle({ seanceId, places, prixCentimes, emailConnecte }: P
 }
 
 /** Temps restant avant la libération automatique des places. */
-function CompteARebours({ expireAt }: { expireAt: string }) {
+function CompteARebours({
+  expireAt,
+  onRecommencer,
+}: {
+  expireAt: string;
+  onRecommencer: () => void;
+}) {
   const [restantMs, setRestantMs] = useState<number | null>(null);
 
   useEffect(() => {
@@ -191,9 +235,14 @@ function CompteARebours({ expireAt }: { expireAt: string }) {
   if (restantMs === null) return null;
   if (restantMs === 0) {
     return (
-      <p role="alert" className="erreur">
-        Délai dépassé : les places ont été libérées.
-      </p>
+      <>
+        <p role="alert" className="erreur">
+          Délai dépassé : les places ont été libérées.
+        </p>
+        <button type="button" className="bouton" onClick={onRecommencer}>
+          Choisir de nouvelles places
+        </button>
+      </>
     );
   }
   const minutes = Math.floor(restantMs / 60_000);

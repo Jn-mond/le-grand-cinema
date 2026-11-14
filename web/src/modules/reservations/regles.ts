@@ -23,6 +23,19 @@ export function statutAffiche(statut: string, creeAt: Date, maintenant: Date = n
   return statut === "en_attente_paiement" && estExpiree(creeAt, maintenant) ? "expiree" : statut;
 }
 
+/**
+ * Résultat de réservation à oublier quand on quitte la page : un refus, une erreur ou des places
+ * dont le délai est dépassé. Des places encore bloquées restent affichées au retour.
+ */
+export function resultatAOublier(
+  resultat: { statut: string; expireAt?: string },
+  maintenant: Date = new Date(),
+): boolean {
+  if (resultat.statut === "refus" || resultat.statut === "erreur") return true;
+  if (resultat.statut !== "bloquee" || resultat.expireAt === undefined) return false;
+  return maintenant.getTime() >= Date.parse(resultat.expireAt);
+}
+
 /** Supprime les doublons, trie les places et vérifie leur nombre. */
 export function normaliserPlaces(placeIds: readonly number[]): number[] {
   const places = [...new Set(placeIds)].sort((a, b) => a - b);
