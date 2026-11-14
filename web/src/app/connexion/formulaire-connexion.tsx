@@ -24,7 +24,7 @@ export function FormulaireConnexion() {
           {etat.erreur}
         </p>
       ) : null}
-      <button type="submit" disabled={enCours}>
+      <button type="submit" disabled={enCours} aria-busy={enCours}>
         {enCours ? "Connexion…" : "Se connecter"}
       </button>
     </form>

@@ -9,6 +9,7 @@ import {
   listerChoixProgrammation,
   listerSeancesAVenir,
 } from "@/modules/seances/catalogue-supabase";
+import { libelleStatut } from "@/modules/seances/plan";
 import { peutProgrammer } from "@/modules/utilisateurs/roles";
 import { FormulaireSeance } from "./formulaire-seance";
 
@@ -71,7 +72,7 @@ async function Programmation() {
                   </td>
                   <td>{seance.salle}</td>
                   <td>{formaterPrix(seance.prixCentimes)}</td>
-                  <td>{seance.statut}</td>
+                  <td>{libelleStatut(seance.statut)}</td>
                 </tr>
               ))}
             </tbody>

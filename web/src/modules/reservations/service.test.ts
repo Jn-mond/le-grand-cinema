@@ -76,6 +76,17 @@ describe("creerReservation", () => {
     expect(depot.creees).toHaveLength(0);
   });
 
+  it("rattache la réservation au compte connecté quand il y en a un", async () => {
+    await creerReservation(depot, {
+      seanceId: 1,
+      email: "a@exemple.test",
+      utilisateurId: "20000000-0000-4000-8000-000000000002",
+    });
+    expect(depot.creees[0]).toMatchObject({
+      utilisateurId: "20000000-0000-4000-8000-000000000002",
+    });
+  });
+
   it("refuse une séance non publiée ou déjà commencée", async () => {
     depot.etat = "non_reservable";
     await expect(

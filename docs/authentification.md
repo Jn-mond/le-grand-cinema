@@ -18,6 +18,7 @@ Ce document décrit comment les personnes se connectent à l'application, commen
 | Page | Accès | Contenu |
 |---|---|---|
 | `/` | Public | Programme des séances publiées à venir (E1) |
+| `/seances/{id}` | Public | Plan de salle et blocage des places pendant 10 minutes (E2, E3) ; connecté, la réservation est rattachée au compte |
 | `/connexion` | Public | Formulaire de connexion |
 | `/espace` | Toute personne connectée | Profil et réservations rattachées au compte (E6) |
 | `/admin` | Rôles `programmateur` et `administrateur` | Séances à venir et création d'une séance (E7) |

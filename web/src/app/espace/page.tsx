@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -6,6 +7,8 @@ import { formaterDateHeure } from "@/lib/dates";
 import { utilisateurConnecte } from "@/lib/session";
 import { clientSupabaseServeur } from "@/lib/supabase-serveur";
 import { listerReservationsDe } from "@/modules/reservations/mes-reservations-supabase";
+import { statutAffiche } from "@/modules/reservations/regles";
+import { libelleStatut } from "@/modules/seances/plan";
 import { libelleRole } from "@/modules/utilisateurs/roles";
 
 export const metadata: Metadata = { title: "Mon espace — Le Grand Cinéma" };
@@ -13,6 +16,11 @@ export const metadata: Metadata = { title: "Mon espace — Le Grand Cinéma" };
 export default function PageEspace() {
   return (
     <>
+      <p>
+        <Link href="/" className="discret">
+          ← Retour au programme
+        </Link>
+      </p>
       <h1>Mon espace</h1>
       <Suspense fallback={<p className="discret">Chargement…</p>}>
         <MesReservations />
@@ -53,7 +61,7 @@ async function MesReservations() {
                 <td>
                   {reservation.debutSeance ? formaterDateHeure(reservation.debutSeance) : "—"}
                 </td>
-                <td>{reservation.statut}</td>
+                <td>{libelleStatut(statutAffiche(reservation.statut, reservation.creeAt))}</td>
               </tr>
             ))}
           </tbody>

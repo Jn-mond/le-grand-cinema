@@ -80,3 +80,18 @@ export async function listerChoixProgrammation(
     })),
   };
 }
+
+/** Une séance publiée (page de réservation), ou null si elle n'existe pas ou n'est pas publiée. */
+export async function lireSeancePubliee(
+  client: SupabaseClient,
+  seanceId: number,
+): Promise<SeanceAffichee | null> {
+  const { data, error } = await client
+    .from("seance")
+    .select(COLONNES)
+    .eq("id", seanceId)
+    .eq("statut", "publiee")
+    .maybeSingle();
+  if (error) throw new Error(`Lecture de la séance impossible : ${error.message}`);
+  return data ? versSeance(data as unknown as LigneSeance) : null;
+}
