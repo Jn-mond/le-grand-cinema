@@ -133,7 +133,8 @@ export function PlanDeSalle({ seanceId, places, prixCentimes, emailConnecte }: P
           <p className="discret">Jusqu’à {MAX_PLACES_PAR_RESERVATION} places par réservation.</p>
           {emailConnecte ? (
             <p>
-              Réservation rattachée à votre compte : <strong>{emailConnecte}</strong>
+              Réservation rattachée à votre compte :
+              <strong className="adresse">{emailConnecte}</strong>
             </p>
           ) : (
             <>
@@ -163,7 +164,7 @@ export function PlanDeSalle({ seanceId, places, prixCentimes, emailConnecte }: P
               {etat.message}
             </p>
           ) : null}
-          <button type="submit" disabled={selection.length === 0 || enCours}>
+          <button type="submit" disabled={selection.length === 0 || enCours} aria-busy={enCours}>
             {enCours ? "Blocage en cours…" : "Bloquer mes places pendant 10 minutes"}
           </button>
         </form>

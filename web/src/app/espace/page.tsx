@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -15,6 +16,11 @@ export const metadata: Metadata = { title: "Mon espace — Le Grand Cinéma" };
 export default function PageEspace() {
   return (
     <>
+      <p>
+        <Link href="/" className="discret">
+          ← Retour au programme
+        </Link>
+      </p>
       <h1>Mon espace</h1>
       <Suspense fallback={<p className="discret">Chargement…</p>}>
         <MesReservations />

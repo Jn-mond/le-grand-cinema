@@ -189,6 +189,10 @@ button {
 
 .formulaire button:disabled {
   opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.formulaire button[aria-busy="true"] {
   cursor: wait;
 }
 
@@ -347,4 +351,14 @@ td {
   font-size: 1.5rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.carte a:not(.bouton) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.adresse {
+  display: block;
+  overflow-wrap: anywhere;
 }
