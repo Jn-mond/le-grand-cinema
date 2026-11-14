@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { formaterDateHeure, formaterPrix } from "@/lib/dates";
 import { utilisateurConnecte } from "@/lib/session";
@@ -25,6 +26,7 @@ export default function PageAdmin() {
 }
 
 async function Programmation() {
+  await connection(); // dépend de la session et de l'heure : calculé à chaque requête
   const utilisateur = await utilisateurConnecte();
   if (!utilisateur) redirect("/connexion");
   if (!peutProgrammer(utilisateur.role)) {

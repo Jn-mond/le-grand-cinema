@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { formaterDateHeure } from "@/lib/dates";
 import { utilisateurConnecte } from "@/lib/session";
@@ -21,6 +22,7 @@ export default function PageEspace() {
 }
 
 async function MesReservations() {
+  await connection(); // dépend de la session : calculé à chaque requête
   const utilisateur = await utilisateurConnecte();
   if (!utilisateur) redirect("/connexion");
   const reservations = await listerReservationsDe(clientSupabaseServeur(), utilisateur.id);
