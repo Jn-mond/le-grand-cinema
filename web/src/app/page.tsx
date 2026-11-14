@@ -1,68 +1,42 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import { connection } from "next/server";
+import { Suspense } from "react";
+import { formaterDateHeure, formaterPrix } from "@/lib/dates";
+import { clientSupabaseServeur } from "@/lib/supabase-serveur";
+import { listerSeancesAVenir } from "@/modules/seances/catalogue-supabase";
 
-export default function Home() {
+export default function Accueil() {
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <>
+      <section className="bandeau">
+        <h1>Programme</h1>
+        <p>Toutes les séances à venir du Grand Cinéma.</p>
+      </section>
+      <Suspense fallback={<p className="discret">Chargement du programme…</p>}>
+        <Programme />
+      </Suspense>
+    </>
+  );
+}
+
+/** E1 — programme public : séances publiées et à venir, à l'heure de Paris. */
+async function Programme() {
+  await connection(); // le programme dépend de l'heure actuelle : calculé à chaque requête
+  const seances = await listerSeancesAVenir(clientSupabaseServeur(), { publieesSeulement: true });
+  if (seances.length === 0) {
+    return <p className="discret">Aucune séance programmée pour le moment.</p>;
+  }
+  return (
+    <ul className="liste-seances">
+      {seances.map((seance) => (
+        <li key={seance.id} className="carte">
+          <p className="titre-film">{seance.film}</p>
+          <p>{formaterDateHeure(seance.debutAt)}</p>
+          <p className="discret">
+            {seance.salle} · {seance.version.toUpperCase()} · {seance.dureeMinutes} min ·{" "}
+            {formaterPrix(seance.prixCentimes)}
           </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -16,8 +16,10 @@ export default defineConfig({
         "src/**/*.test.ts",
         "src/test/**",
         "src/**/depot.ts",
-        "src/**/depot-supabase.ts",
+        "src/**/*-supabase.ts",
         "src/lib/supabase-serveur.ts",
+        "src/lib/supabase-auth.ts",
+        "src/lib/session.ts",
       ],
       // Seuils minimaux : la vérification automatique échoue si la couverture descend en dessous.
       thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },

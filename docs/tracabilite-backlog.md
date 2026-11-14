@@ -13,7 +13,7 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 | E3 Réservation et verrou de places | MVP | Must | Couvert |
 | E4 Paiement en ligne sécurisé | MVP | Must | Couvert (hypothèse H4 à valider) |
 | E5 Billet dématérialisé et contrôle d'accès | MVP | Must | Couvert (signature du QR code : application) |
-| E6 Réservation invité et compte client | MVP / V1 | Should | Couvert pour l'invité ; compte complet en V1 |
+| E6 Réservation invité et compte client | MVP / V1 | Should | Couvert pour l'invité ; connexion et espace client depuis la migration 0006 |
 | E7 Gestion de la programmation | MVP | Must | Partiel (un seul prix par séance) |
 | E8 Suivi des réservations et ventes guichet | MVP | Must | Couvert depuis la migration 0002 |
 | E9 Pilotage : remplissage et indicateurs | MVP « lite » | Should | Couvert pour le taux de remplissage |
@@ -27,7 +27,7 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 
 ### E1 — Catalogue et programmation publique (U1, U2, U3)
 - **Base :** tables `film`, `genre`, `film_genre`, `salle`, `seance`. Les synopsis existent en français et en anglais (`synopsis_fr`, `synopsis_en`) pour l'interface bilingue. Seules les séances au statut `publiee` sont destinées à l'affichage public.
-- **Application :** traduction de l'interface, recherche et filtres.
+- **Application :** page d'accueil `/` avec le programme des séances publiées à venir ; restent la traduction de l'interface, la recherche et les filtres.
 
 ### E2 — Disponibilités et plan de salle en temps réel (U1, U2)
 - **Base :** `place` (rangée, numéro, position et accessibilité PMR pour dessiner le plan), vue `vue_places_seance` (état libre, verrouillée ou vendue pour chaque place d'une séance).
@@ -47,12 +47,12 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 - **Application :** signature cryptographique du QR code (la base ne stocke que le jeton), envoi par e-mail, scan accepté ou refusé en moins de 2 secondes.
 
 ### E6 — Réservation invité et compte client (U1, U2)
-- **Base :** `reservation.utilisateur_id` vide pour un invité, avec l'e-mail obligatoire en ligne pour retrouver les billets ; table `utilisateur` prête pour le compte client complet prévu en V1.
+- **Base :** `reservation.utilisateur_id` vide pour un invité, avec l'e-mail obligatoire en ligne pour retrouver les billets ; table `utilisateur` reliée à Supabase Auth (migration 0006) : connexion par e-mail et mot de passe, et page `/espace` qui liste les réservations du compte (voir `docs/authentification.md`).
 
 ### E7 — Gestion de la programmation (U5)
 - **Base :** création et modification de `film`, `seance`, `salle` ; la contrainte `seance_pas_de_chevauchement` empêche de programmer deux séances en même temps dans une salle (tests T8 et T10) ; le statut `brouillon`, `publiee` ou `annulee` permet de publier ou retirer une séance.
 - **Limite connue :** il n'y a qu'un prix par séance (`prix_centimes`). L'EPIC parle de « tarifs » : si des tarifs différenciés (réduit, enfant) sont attendus, une table de tarifs sera ajoutée dans une migration ultérieure.
-- **Application :** publication visible sur le site en moins d'une minute.
+- **Application :** page `/admin`, réservée aux rôles programmateur et administrateur : liste des séances à venir et création d'une séance (heure de Paris, fin calculée avec 15 minutes de nettoyage, chevauchement signalé). Une séance publiée apparaît immédiatement sur la page d'accueil, chaque page étant calculée à la requête.
 
 ### E8 — Suivi des réservations et ventes guichet (U4, U5)
 - **Base :** le guichet utilise les mêmes tables et les mêmes verrous que le site : une vente au guichet retire donc immédiatement la place du stock en ligne. La migration 0002 ajoute le canal (`en_ligne` ou `guichet`) et le vendeur, et rend l'e-mail facultatif au guichet (tests T29 à T33). La migration 0003 ajoute une référence courte et le nom du client, et la fonction `rechercher_reservations()` retrouve une réservation par nom, e-mail ou référence (tests T34 à T38). L'index `reservation_seance_idx` permet de consulter les réservations d'une séance ; `vue_remplissage_seance` donne la fréquentation.
@@ -73,6 +73,7 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 ### E12 — Socle transverse (tous profils)
 - **Couvert par la base :** intégrité des données (clés étrangères, contraintes, tests), pas de mot de passe ni de donnée de carte stockés.
 - **Fait (migration 0005) :** sécurité au niveau des lignes activée sur toutes les tables, accès retiré à la clé publique de Supabase ; clé secrète utilisée uniquement côté serveur.
+- **Fait (migration 0006) :** connexion par Supabase Auth, rôle vérifié côté serveur dans chaque page et action protégée.
 - **À venir :** règles de conservation et d'anonymisation RGPD, règles d'accès par utilisateur connecté, supervision et sauvegardes (services de la plateforme).
 
 ### E13 et E14 — V2

@@ -31,8 +31,12 @@ export const schemaIdentifiantReservation = z
 
 export const schemaIdentifiantSeance = z.coerce.number().int().positive();
 
-/** Valide une donnée reçue ; en cas d'échec, liste les champs en erreur. */
-export function valider<T>(schema: z.ZodType<T>, valeur: unknown): T {
+/**
+ * Valide une donnée reçue et renvoie la valeur obtenue (éventuellement transformée par le
+ * schéma, par exemple un prix saisi en texte converti en centimes) ; en cas d'échec, liste
+ * les champs en erreur.
+ */
+export function valider<S extends z.ZodType>(schema: S, valeur: unknown): z.output<S> {
   const resultat = schema.safeParse(valeur);
   if (!resultat.success) {
     throw new ErreurApplication("REQUETE_INVALIDE", "Données invalides", {
