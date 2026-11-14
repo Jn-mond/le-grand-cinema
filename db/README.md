@@ -21,6 +21,7 @@ psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0002_vente_guichet.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0003_reference_et_nom_client.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0004_verrou_non_prolongeable.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0005_verrou_multiple_et_securite_api.sql
+psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0006_authentification.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/seeds/jeu_essai.sql
 ```
 
