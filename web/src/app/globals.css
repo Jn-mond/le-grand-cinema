@@ -219,3 +219,132 @@ td {
   padding: 0.4rem 0.5rem;
   border-bottom: 1px solid var(--bordure);
 }
+
+/* ---- Réservation : plan de salle (E2 / E3) ------------------------------ */
+.bandeau {
+  margin-bottom: 1.25rem;
+}
+
+.colonnes.plan-et-panier {
+  grid-template-columns: 2fr minmax(280px, 1fr);
+}
+
+@media (max-width: 800px) {
+  .colonnes.plan-et-panier {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bouton {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.ecran {
+  width: 80%;
+  margin-bottom: 0.75rem;
+  padding: 0.2rem;
+  border-top: 4px solid var(--bordure);
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--discret);
+}
+
+.rangee {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.nom-rangee {
+  width: 1.5rem;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--discret);
+}
+
+.siege {
+  display: inline-block;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 2px solid var(--bordure);
+  border-radius: 6px 6px 3px 3px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.siege.pmr {
+  border-color: #2563eb;
+}
+
+.siege.choisie {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.siege.verrouillee {
+  background: #fde68a;
+  border-color: #f59e0b;
+  color: #78350f;
+}
+
+.siege.vendue {
+  background: var(--bordure);
+  color: var(--discret);
+}
+
+.siege:disabled {
+  cursor: not-allowed;
+}
+
+.siege:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+.legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 1rem;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.legende li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legende .siege {
+  width: 1rem;
+  height: 1rem;
+}
+
+.recapitulatif p {
+  margin-bottom: 0.5rem;
+}
+
+.compte-a-rebours {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}

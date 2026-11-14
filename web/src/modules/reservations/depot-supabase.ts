@@ -51,6 +51,7 @@ export class DepotReservationsSupabase implements DepotReservations {
         seance_id: reservation.seanceId,
         email: reservation.email,
         nom_client: reservation.nomClient ?? null,
+        utilisateur_id: reservation.utilisateurId ?? null,
       })
       .select(COLONNES_RESERVATION)
       .single();

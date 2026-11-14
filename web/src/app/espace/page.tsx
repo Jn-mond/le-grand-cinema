@@ -6,6 +6,8 @@ import { formaterDateHeure } from "@/lib/dates";
 import { utilisateurConnecte } from "@/lib/session";
 import { clientSupabaseServeur } from "@/lib/supabase-serveur";
 import { listerReservationsDe } from "@/modules/reservations/mes-reservations-supabase";
+import { statutAffiche } from "@/modules/reservations/regles";
+import { libelleStatut } from "@/modules/seances/plan";
 import { libelleRole } from "@/modules/utilisateurs/roles";
 
 export const metadata: Metadata = { title: "Mon espace — Le Grand Cinéma" };
@@ -53,7 +55,7 @@ async function MesReservations() {
                 <td>
                   {reservation.debutSeance ? formaterDateHeure(reservation.debutSeance) : "—"}
                 </td>
-                <td>{reservation.statut}</td>
+                <td>{libelleStatut(statutAffiche(reservation.statut, reservation.creeAt))}</td>
               </tr>
             ))}
           </tbody>

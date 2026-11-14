@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { formaterDateHeure, formaterPrix } from "@/lib/dates";
@@ -35,6 +36,9 @@ async function Programme() {
             {seance.salle} · {seance.version.toUpperCase()} · {seance.dureeMinutes} min ·{" "}
             {formaterPrix(seance.prixCentimes)}
           </p>
+          <Link href={`/seances/${seance.id}`} className="bouton">
+            Réserver
+          </Link>
         </li>
       ))}
     </ul>

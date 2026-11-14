@@ -6,6 +6,7 @@ import {
   echeanceReservation,
   estExpiree,
   normaliserPlaces,
+  statutAffiche,
 } from "./regles";
 
 const CREATION = new Date("2026-11-20T18:00:00.000Z");
@@ -24,6 +25,21 @@ describe("estExpiree", () => {
 
   it("est expirée à l'échéance exacte (même règle que la base : <= now())", () => {
     expect(estExpiree(CREATION, new Date("2026-11-20T18:10:00.000Z"))).toBe(true);
+  });
+});
+
+describe("statutAffiche", () => {
+  it("affiche « expirée » une réservation non payée dont le délai est dépassé", () => {
+    const avant = new Date("2026-11-20T18:09:59.000Z");
+    const apres = new Date("2026-11-20T18:10:00.000Z");
+    expect(statutAffiche("en_attente_paiement", CREATION, avant)).toBe("en_attente_paiement");
+    expect(statutAffiche("en_attente_paiement", CREATION, apres)).toBe("expiree");
+  });
+
+  it("ne touche pas aux autres statuts", () => {
+    const tard = new Date("2026-12-01T00:00:00.000Z");
+    expect(statutAffiche("confirmee", CREATION, tard)).toBe("confirmee");
+    expect(statutAffiche("annulee", CREATION, tard)).toBe("annulee");
   });
 });
 
