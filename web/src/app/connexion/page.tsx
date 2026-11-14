@@ -7,7 +7,9 @@ export default function PageConnexion() {
   return (
     <section className="carte etroite">
       <h1>Connexion</h1>
-      <p className="discret">Accédez à vos réservations ou, pour le personnel, à la programmation.</p>
+      <p className="discret">
+        Accédez à vos réservations ou, pour le personnel, à la programmation.
+      </p>
       <FormulaireConnexion />
     </section>
   );

@@ -27,7 +27,8 @@ async function MesReservations() {
   return (
     <section className="carte">
       <p>
-        {utilisateur.prenom} {utilisateur.nom} · {utilisateur.email} · {libelleRole(utilisateur.role)}
+        {utilisateur.prenom} {utilisateur.nom} · {utilisateur.email} ·{" "}
+        {libelleRole(utilisateur.role)}
       </p>
       <h2>Mes réservations</h2>
       {reservations.length === 0 ? (
@@ -47,7 +48,9 @@ async function MesReservations() {
               <tr key={reservation.reference}>
                 <td>{reservation.reference}</td>
                 <td>{reservation.film}</td>
-                <td>{reservation.debutSeance ? formaterDateHeure(reservation.debutSeance) : "—"}</td>
+                <td>
+                  {reservation.debutSeance ? formaterDateHeure(reservation.debutSeance) : "—"}
+                </td>
                 <td>{reservation.statut}</td>
               </tr>
             ))}

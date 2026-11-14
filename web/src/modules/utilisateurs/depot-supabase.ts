@@ -20,5 +20,11 @@ export async function lireProfil(client: SupabaseClient, id: string): Promise<Pr
   if (error) throw new Error(`Lecture du profil impossible : ${error.message}`);
   const ligne = data as LigneUtilisateur | null;
   if (!ligne || !ligne.actif) return null;
-  return { id: ligne.id, email: ligne.email, prenom: ligne.prenom, nom: ligne.nom, role: ligne.role };
+  return {
+    id: ligne.id,
+    email: ligne.email,
+    prenom: ligne.prenom,
+    nom: ligne.nom,
+    role: ligne.role,
+  };
 }
