@@ -1,6 +1,6 @@
 # Connexion et rôles
 
-Ce document décrit comment les personnes se connectent à l'application, comment leurs droits sont vérifiés, et comment créer les comptes de démonstration (administrateur et spectateur) remis à l'évaluateur.
+Ce document décrit comment les personnes se connectent à l'application, comment leurs droits sont vérifiés, et où trouver la procédure de création des comptes de démonstration.
 
 ## Principe
 
@@ -36,21 +36,6 @@ Deux variables s'ajoutent à `web/.env.local` et aux variables d'environnement d
 
 Le préfixe `NEXT_PUBLIC_` rend ces valeurs visibles par le navigateur : c'est sans danger pour l'URL et la clé publique, qui n'ouvrent aucune donnée. La clé secrète, elle, garde un nom sans ce préfixe et ne quitte jamais le serveur.
 
-## Créer les comptes de démonstration
+## Comptes de démonstration
 
-1. Appliquer la migration `0006_authentification.sql` (SQL Editor de Supabase).
-2. Dans Supabase, *Authentication* > *Users* > *Add user* > *Create new user*, cocher **Auto Confirm User**, et créer :
-   - `admin.demo@le-grand-cinema.test` ;
-   - `spectateur.demo@le-grand-cinema.test`.
-
-   Choisir pour chacun un mot de passe solide (au moins 12 caractères). **Les mots de passe ne sont jamais écrits dans le dépôt** : ils figurent uniquement dans le dossier remis à l'évaluateur.
-3. Donner le rôle administrateur et les noms affichés (SQL Editor) :
-   ```sql
-   update utilisateur set role = 'administrateur', prenom = 'Admin', nom = 'Démo'
-   where email = 'admin.demo@le-grand-cinema.test';
-   update utilisateur set prenom = 'Spectateur', nom = 'Démo'
-   where email = 'spectateur.demo@le-grand-cinema.test';
-   ```
-4. Recommandé : *Authentication* > *Sign In / Providers*, désactiver **Allow new users to sign up**. L'application n'a pas de page d'inscription ; sans ce réglage, n'importe qui pourrait créer un compte avec la clé publique.
-
-Une adresse déjà présente dans `utilisateur` (par exemple celles du jeu d'essai) ne peut pas servir à créer un compte de connexion : la création est refusée pour éviter deux profils pour la même personne.
+La création des deux comptes remis à l'évaluateur (administrateur et spectateur) est décrite dans [`comptes-demo.md`](comptes-demo.md).

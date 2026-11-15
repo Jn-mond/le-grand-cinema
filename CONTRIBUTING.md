@@ -48,6 +48,8 @@ Ce document fixe les règles de travail avec Git : branches, commits et fusions.
 ^((feature|fix|docs|chore|refactor|test|hotfix)/[a-z0-9]+(-[a-z0-9]+)*|release/[0-9]+\.[0-9]+\.[0-9]+)$
 ```
 
+La vérification automatique applique cette expression au nom de la branche source de chaque Pull Request. Elle accepte en plus `develop`, source des Pull Requests de version vers `main`. Le contrôle ne tourne que sur les Pull Requests : après une fusion, sur `develop` ou `main`, il apparaît « ignoré » dans GitHub Actions.
+
 ### Exemples
 
 | Nom de branche | Valide | Remarque |
@@ -78,13 +80,8 @@ gitGraph
    commit id: "Test de concurrence"
    checkout develop
    merge "feature/e3-1-verrou-places"
-   branch "release/0.1.0"
-   checkout "release/0.1.0"
-   commit id: "Version 0.1.0"
    checkout main
-   merge "release/0.1.0" tag: "v0.1.0"
-   checkout develop
-   merge "release/0.1.0"
+   merge develop tag: "v0.1.0"
 ```
 
 1. Se placer sur `develop` à jour : `git checkout develop && git pull`.
@@ -92,7 +89,7 @@ gitGraph
 3. Faire des commits petits et nommés selon la section 4.
 4. Pousser la branche et ouvrir une Pull Request vers `develop`.
 5. Après fusion, supprimer la branche.
-6. Pour une version : créer `release/x.y.z` depuis `develop`, la fusionner dans `main` avec une étiquette `vx.y.z`, puis la fusionner dans `develop`.
+6. Pour une version : ouvrir une Pull Request de `develop` vers `main` intitulée `release: x.y.z`, la fusionner, puis poser l'étiquette `vx.y.z` sur `main` (onglet *Releases* de GitHub). Une branche `release/x.y.z` n'est créée que si la version doit être stabilisée pendant que `develop` continue d'avancer ; elle est alors fusionnée dans `main`, puis dans `develop`.
 7. Pour un défaut urgent en production : créer `hotfix/...` depuis `main`, la fusionner dans `main` avec une nouvelle étiquette, puis dans `develop`.
 
 ## 4. Messages de commit
@@ -115,9 +112,10 @@ docs: ajoute le schéma d'architecture
 
 ## 5. Fusions
 
-- Toute fusion dans `develop` ou `main` passe par une Pull Request, même quand on travaille seul : elle garde la trace de la décision et accueillera les contrôles automatiques (GitHub Actions) une fois le pipeline en place.
+- Toute fusion dans `develop` ou `main` passe par une Pull Request, même quand on travaille seul : elle garde la trace de la décision et déclenche la vérification automatique (`.github/workflows/ci.yml`). La fusion n'est possible que si les vérifications requises sont vertes.
 - Vers `develop` : option « Squash and merge » de GitHub, qui regroupe les commits pour un historique lisible.
-- Vers `main` (depuis `release/` ou `hotfix/`) : option « Create a merge commit », sans regroupement, pour garder la trace de la version.
+- Vers `main` (depuis `develop`, `release/` ou `hotfix/`) : option « Create a merge commit », sans regroupement, pour garder la trace de la version.
+- Le message du commit de fusion reprend le titre de la Pull Request suivi de son numéro : `fix(dates): … (#19)`.
 
 ## 6. Versions
 
@@ -125,6 +123,6 @@ Les étiquettes suivent le versionnement sémantique : `vMAJEUR.MINEUR.CORRECTIF
 
 ## 7. Réglages GitHub recommandés
 
-- Settings > Branches : créer une règle de protection pour `main` et pour `develop` (exiger une Pull Request avant fusion, interdire la poussée directe).
+- Settings > Rules : un ensemble de règles (ruleset) protège `main` et `develop` : Pull Request obligatoire, vérifications requises au vert (« Base de données » et « Application web »), conversations résolues, suppression et réécriture d'historique interdites.
 - Settings > General > Pull Requests : cocher « Automatically delete head branches » pour supprimer la branche source après fusion.
 - Branche par défaut : `main`.
