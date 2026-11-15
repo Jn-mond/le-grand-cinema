@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -93,9 +94,11 @@ async function Programmation() {
                     <CelluleRemplissage remplissage={remplissages.get(seance.id)} />
                   </td>
                   <td>
-                    {libelleReservations(
-                      reservations.get(seance.id) ?? { confirmees: 0, enCours: 0 },
-                    )}
+                    <Link href={`/admin/seances/${seance.id}`}>
+                      {libelleReservations(
+                        reservations.get(seance.id) ?? { confirmees: 0, enCours: 0 },
+                      )}
+                    </Link>
                   </td>
                   <td>
                     <BoutonPublication seanceId={seance.id} statut={seance.statut} />

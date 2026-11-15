@@ -1,11 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { libelleRole, pageApresConnexion, peutProgrammer, type Role } from "./roles";
+import {
+  libelleRole,
+  pageApresConnexion,
+  peutConsulterReservations,
+  peutProgrammer,
+  type Role,
+} from "./roles";
 
 const TOUS: Role[] = ["spectateur", "professionnel", "accueil", "programmateur", "administrateur"];
 
 describe("peutProgrammer", () => {
   it("n'autorise que le programmateur et l'administrateur", () => {
     expect(TOUS.filter(peutProgrammer)).toEqual(["programmateur", "administrateur"]);
+  });
+});
+
+describe("peutConsulterReservations", () => {
+  it("autorise l'accueil et la programmation, pas les clients", () => {
+    expect(TOUS.filter(peutConsulterReservations)).toEqual([
+      "accueil",
+      "programmateur",
+      "administrateur",
+    ]);
   });
 });
 
