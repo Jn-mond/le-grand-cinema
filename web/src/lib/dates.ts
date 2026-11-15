@@ -10,9 +10,14 @@ const formatDecalage = new Intl.DateTimeFormat("en-US", {
 
 /** Décalage de l'heure de Paris par rapport à UTC, en minutes (60 en hiver, 120 en été). */
 export function decalageParisMinutes(instant: Date): number {
-  const nom = formatDecalage.formatToParts(instant).find((p) => p.type === "timeZoneName")?.value;
-  const morceaux = /^GMT([+-])(\d{2}):(\d{2})$/.exec(nom ?? "");
-  if (!morceaux) return 0;
+  const nom =
+    formatDecalage.formatToParts(instant).find((p) => p.type === "timeZoneName")?.value ?? "";
+  if (nom === "GMT") return 0; // décalage nul : format standard, sans heures ni minutes
+  const morceaux = /^GMT([+-])(\d{2}):(\d{2})$/.exec(nom);
+  if (!morceaux) {
+    // Pas de repli silencieux sur UTC : la séance serait enregistrée une ou deux heures trop tôt.
+    throw new Error(`Décalage horaire de Paris illisible : « ${nom} »`);
+  }
   const signe = morceaux[1] === "-" ? -1 : 1;
   return signe * (Number(morceaux[2]) * 60 + Number(morceaux[3]));
 }

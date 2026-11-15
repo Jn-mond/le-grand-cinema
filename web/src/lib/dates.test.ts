@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { erreurLevee } from "../test/utilitaires";
 import { decalageParisMinutes, formaterDateHeure, formaterPrix, heureParisVersUtc } from "./dates";
 
@@ -6,6 +6,38 @@ describe("decalageParisMinutes", () => {
   it("vaut une heure en hiver et deux heures en été", () => {
     expect(decalageParisMinutes(new Date("2026-11-20T12:00:00Z"))).toBe(60);
     expect(decalageParisMinutes(new Date("2026-07-14T12:00:00Z"))).toBe(120);
+  });
+
+  describe("format renvoyé par le moteur JavaScript", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+    const nomDuFuseau = (value: string): Intl.DateTimeFormatPart[] => [
+      { type: "timeZoneName", value },
+    ];
+    const simuler = (parties: Intl.DateTimeFormatPart[]) =>
+      vi.spyOn(Intl.DateTimeFormat.prototype, "formatToParts").mockImplementation(() => parties);
+    const instant = new Date("2026-11-20T12:00:00Z");
+
+    it("lit un décalage nul ou négatif", () => {
+      simuler(nomDuFuseau("GMT"));
+      expect(decalageParisMinutes(instant)).toBe(0);
+      vi.restoreAllMocks();
+      simuler(nomDuFuseau("GMT-03:30"));
+      expect(decalageParisMinutes(instant)).toBe(-210);
+    });
+
+    it("refuse un décalage illisible plutôt que de supposer UTC", () => {
+      simuler(nomDuFuseau("heure de Paris"));
+      expect(erreurLevee(() => decalageParisMinutes(instant))).toMatchObject({
+        message: "Décalage horaire de Paris illisible : « heure de Paris »",
+      });
+      vi.restoreAllMocks();
+      simuler([]);
+      expect(erreurLevee(() => decalageParisMinutes(instant))).toMatchObject({
+        message: "Décalage horaire de Paris illisible : «  »",
+      });
+    });
   });
 });
 
