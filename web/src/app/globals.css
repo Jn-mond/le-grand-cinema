@@ -399,3 +399,13 @@ td {
   height: 0.5rem;
   margin: 0.2rem 0;
 }
+
+.colonnes.programmation {
+  grid-template-columns: minmax(260px, 300px) 1fr;
+}
+
+@media (max-width: 900px) {
+  .colonnes.programmation {
+    grid-template-columns: 1fr;
+  }
+}
