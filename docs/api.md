@@ -73,4 +73,4 @@ Le service ne dépend que du contrat `depot.ts` : les tests unitaires lui donnen
 ## Hypothèses à valider
 
 - **10 places au maximum par réservation** : limite choisie pour éviter qu'une seule réservation bloque une salle entière. Elle n'est pas fixée par le backlog et reste à confirmer avec le cinéma.
-- **Pas encore d'authentification** : ces routes servent le parcours invité (E6). L'accès réservé au personnel arrivera avec la connexion des utilisateurs.
+- **Sans authentification, volontairement** : ces routes servent le parcours invité (E6), qui permet de réserver sans compte. La connexion (version 0.2.0) protège les pages du personnel, pas ces routes ; voir [`authentification.md`](authentification.md).
