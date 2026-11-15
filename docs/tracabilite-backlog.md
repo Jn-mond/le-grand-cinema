@@ -63,6 +63,7 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 
 ### E9 — Pilotage : remplissage et indicateurs (U5)
 - **Base :** `vue_remplissage_seance` calcule le taux de remplissage avec la définition du backlog : places occupées (billets valides ou utilisés) divisées par places offertes (places actives de la salle).
+- **Calculer le taux de remplissage par séance** (branche `feature/e9-taux-remplissage`) : dans `/admin`, chaque séance à venir affiche son taux (arrondi au dixième), une jauge et le détail « 1 vendue sur 24 · 2 en cours de réservation ». Le taux suit la définition de la vue : seules les places vendues comptent ; les places bloquées sont indiquées à part, car une réservation non payée libère ses places au bout de 10 minutes. Une salle sans place active affiche un tiret plutôt qu'un taux inventé.
 - **V1 :** tableaux de bord avancés, hors base.
 
 ### E10 — Anticipation des pics et mode festival (V2)
