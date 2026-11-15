@@ -15,7 +15,9 @@ export type CodeErreur =
   | "FILM_INTROUVABLE"
   | "SALLE_INTROUVABLE"
   | "SEANCE_DANS_LE_PASSE"
-  | "SEANCE_EN_CONFLIT";
+  | "SEANCE_EN_CONFLIT"
+  | "SEANCE_NON_MODIFIABLE"
+  | "SEANCE_AVEC_RESERVATIONS";
 
 const STATUT_HTTP: Record<CodeErreur, number> = {
   REQUETE_INVALIDE: 400,
@@ -31,6 +33,8 @@ const STATUT_HTTP: Record<CodeErreur, number> = {
   SALLE_INTROUVABLE: 404,
   SEANCE_DANS_LE_PASSE: 422,
   SEANCE_EN_CONFLIT: 409,
+  SEANCE_NON_MODIFIABLE: 409,
+  SEANCE_AVEC_RESERVATIONS: 409,
 };
 
 export class ErreurApplication extends Error {

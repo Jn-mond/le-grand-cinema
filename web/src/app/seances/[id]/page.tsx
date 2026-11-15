@@ -7,7 +7,7 @@ import { formaterDateHeure, formaterPrix } from "@/lib/dates";
 import { utilisateurConnecte } from "@/lib/session";
 import { clientSupabaseServeur } from "@/lib/supabase-serveur";
 import { schemaIdentifiantSeance } from "@/modules/reservations/schemas";
-import { lireSeancePubliee } from "@/modules/seances/catalogue-supabase";
+import { lireSeance } from "@/modules/seances/catalogue-supabase";
 import { DepotSeancesSupabase } from "@/modules/seances/depot-supabase";
 import { reservationEnLigneOuverte } from "@/modules/seances/plan";
 import { obtenirPlanDeSalle } from "@/modules/seances/service";
@@ -38,7 +38,7 @@ async function Reservation({ params }: { params: Promise<{ id: string }> }) {
   if (!identifiant.success) notFound();
 
   const client = clientSupabaseServeur();
-  const seance = await lireSeancePubliee(client, identifiant.data);
+  const seance = await lireSeance(client, identifiant.data, { publieeSeulement: true });
   if (!seance) notFound();
 
   if (!reservationEnLigneOuverte(seance.debutAt)) {
@@ -61,7 +61,10 @@ async function Reservation({ params }: { params: Promise<{ id: string }> }) {
     <>
       <section className="bandeau">
         <h1>{seance.film}</h1>
-        <p>{formaterDateHeure(seance.debutAt)}</p>
+        <p>
+          {formaterDateHeure(seance.debutAt)} ·{" "}
+          <Link href={`/films/${seance.filmId}`}>Voir la fiche du film</Link>
+        </p>
         <p className="discret">
           {seance.salle} · {seance.version.toUpperCase()} · {seance.dureeMinutes} min ·{" "}
           {formaterPrix(seance.prixCentimes)} la place · {plan.resume.libre} place(s) libre(s)

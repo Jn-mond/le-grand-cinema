@@ -14,6 +14,11 @@ export function peutProgrammer(role: Role): boolean {
   return role === "programmateur" || role === "administrateur";
 }
 
+/** Consulter les réservations d'une séance (E8) : personnel d'accueil et de programmation. */
+export function peutConsulterReservations(role: Role): boolean {
+  return role === "accueil" || peutProgrammer(role);
+}
+
 /** Page où envoyer une personne juste après sa connexion. */
 export function pageApresConnexion(role: Role): "/admin" | "/espace" {
   return peutProgrammer(role) ? "/admin" : "/espace";
