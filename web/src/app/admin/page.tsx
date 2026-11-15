@@ -6,6 +6,12 @@ import { formaterDateHeure, formaterPrix } from "@/lib/dates";
 import { utilisateurConnecte } from "@/lib/session";
 import { clientSupabaseServeur } from "@/lib/supabase-serveur";
 import {
+  detailRemplissage,
+  libelleTaux,
+  type Remplissage as RemplissageSeance,
+} from "@/modules/pilotage/remplissage";
+import { lireRemplissages } from "@/modules/pilotage/remplissage-supabase";
+import {
   listerChoixProgrammation,
   listerSeancesAVenir,
 } from "@/modules/seances/catalogue-supabase";
@@ -43,6 +49,10 @@ async function Programmation() {
     listerChoixProgrammation(client),
     listerSeancesAVenir(client, { publieesSeulement: false }),
   ]);
+  const remplissages = await lireRemplissages(
+    client,
+    seances.map((seance) => seance.id),
+  );
   return (
     <div className="colonnes">
       <section className="carte">
@@ -58,10 +68,9 @@ async function Programmation() {
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Film</th>
-                <th>Salle</th>
-                <th>Prix</th>
+                <th>Séance</th>
                 <th>Statut</th>
+                <th>Remplissage</th>
                 <th>Site</th>
               </tr>
             </thead>
@@ -71,10 +80,14 @@ async function Programmation() {
                   <td>{formaterDateHeure(seance.debutAt)}</td>
                   <td>
                     {seance.film} ({seance.version.toUpperCase()})
+                    <span className="sous-ligne">
+                      {seance.salle} · {formaterPrix(seance.prixCentimes)}
+                    </span>
                   </td>
-                  <td>{seance.salle}</td>
-                  <td>{formaterPrix(seance.prixCentimes)}</td>
                   <td>{libelleStatut(seance.statut)}</td>
+                  <td>
+                    <CelluleRemplissage remplissage={remplissages.get(seance.id)} />
+                  </td>
                   <td>
                     <BoutonPublication seanceId={seance.id} statut={seance.statut} />
                   </td>
@@ -85,5 +98,25 @@ async function Programmation() {
         )}
       </section>
     </div>
+  );
+}
+
+/** E9 — taux de remplissage d'une séance, avec une jauge et le détail des places. */
+function CelluleRemplissage({ remplissage }: { remplissage: RemplissageSeance | undefined }) {
+  if (!remplissage) return <span className="discret">—</span>;
+  return (
+    <>
+      <strong>{libelleTaux(remplissage)}</strong>
+      {remplissage.tauxPct !== null ? (
+        <meter
+          className="jauge"
+          min={0}
+          max={100}
+          value={remplissage.tauxPct}
+          aria-label={`Taux de remplissage : ${libelleTaux(remplissage)}`}
+        />
+      ) : null}
+      <span className="sous-ligne">{detailRemplissage(remplissage)}</span>
+    </>
   );
 }
