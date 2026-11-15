@@ -363,3 +363,24 @@ td {
   display: block;
   overflow-wrap: anywhere;
 }
+
+/* ---- Programmation : publier ou retirer une séance (E7) ----------------- */
+.action-ligne button {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.action-ligne button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.action-ligne .erreur {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+}

@@ -11,6 +11,7 @@ import {
 } from "@/modules/seances/catalogue-supabase";
 import { libelleStatut } from "@/modules/seances/plan";
 import { peutProgrammer } from "@/modules/utilisateurs/roles";
+import { BoutonPublication } from "./bouton-publication";
 import { FormulaireSeance } from "./formulaire-seance";
 
 export const metadata: Metadata = { title: "Programmation — Le Grand Cinéma" };
@@ -61,6 +62,7 @@ async function Programmation() {
                 <th>Salle</th>
                 <th>Prix</th>
                 <th>Statut</th>
+                <th>Site</th>
               </tr>
             </thead>
             <tbody>
@@ -73,6 +75,9 @@ async function Programmation() {
                   <td>{seance.salle}</td>
                   <td>{formaterPrix(seance.prixCentimes)}</td>
                   <td>{libelleStatut(seance.statut)}</td>
+                  <td>
+                    <BoutonPublication seanceId={seance.id} statut={seance.statut} />
+                  </td>
                 </tr>
               ))}
             </tbody>
