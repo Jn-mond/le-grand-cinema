@@ -30,7 +30,9 @@ async function Programme() {
     <ul className="liste-seances">
       {seances.map((seance) => (
         <li key={seance.id} className="carte">
-          <p className="titre-film">{seance.film}</p>
+          <p className="titre-film">
+            <Link href={`/films/${seance.filmId}`}>{seance.film}</Link>
+          </p>
           <p>{formaterDateHeure(seance.debutAt)}</p>
           <p className="discret">
             {seance.salle} · {seance.version.toUpperCase()} · {seance.dureeMinutes} min ·{" "}

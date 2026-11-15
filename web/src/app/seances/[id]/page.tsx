@@ -61,7 +61,10 @@ async function Reservation({ params }: { params: Promise<{ id: string }> }) {
     <>
       <section className="bandeau">
         <h1>{seance.film}</h1>
-        <p>{formaterDateHeure(seance.debutAt)}</p>
+        <p>
+          {formaterDateHeure(seance.debutAt)} ·{" "}
+          <Link href={`/films/${seance.filmId}`}>Voir la fiche du film</Link>
+        </p>
         <p className="discret">
           {seance.salle} · {seance.version.toUpperCase()} · {seance.dureeMinutes} min ·{" "}
           {formaterPrix(seance.prixCentimes)} la place · {plan.resume.libre} place(s) libre(s)

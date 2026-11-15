@@ -409,3 +409,62 @@ td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Catalogue : fiche d'un film (E1) ----------------------------------- */
+.titre-film a:hover,
+.bandeau a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.fiche-film {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.fiche-film h2 {
+  margin-top: 1.25rem;
+}
+
+.affiche img,
+.affiche-absente {
+  display: block;
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.affiche-absente {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--bordure);
+  color: var(--discret);
+}
+
+.seances-du-film {
+  list-style: none;
+}
+
+.seances-du-film li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.seances-du-film .bouton {
+  margin-top: 0;
+}
+
+@media (max-width: 700px) {
+  .fiche-film {
+    grid-template-columns: 1fr;
+  }
+}
