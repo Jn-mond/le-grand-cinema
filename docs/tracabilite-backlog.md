@@ -27,7 +27,9 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 
 ### E1 — Catalogue et programmation publique (U1, U2, U3)
 - **Base :** tables `film`, `genre`, `film_genre`, `salle`, `seance`. Les synopsis existent en français et en anglais (`synopsis_fr`, `synopsis_en`) pour l'interface bilingue. Seules les séances au statut `publiee` sont destinées à l'affichage public.
-- **Application :** page d'accueil `/` avec le programme des séances publiées à venir ; restent la traduction de l'interface, la recherche et les filtres.
+- **Application :** page d'accueil `/` avec le programme des séances publiées à venir.
+- **Afficher la fiche d'un film** (branche `feature/e1-fiche-film`) : page `/films/{id}`, ouverte depuis le titre du film sur le programme ou depuis la page de réservation. Elle présente l'affiche, la durée (« 1 h 35 »), le public (« Interdit aux moins de 12 ans »), les genres, la date de sortie, le synopsis et les prochaines séances publiées du film, chacune avec son bouton « Réserver ». Seule une affiche en `https` est affichée ; sinon, un encart « Affiche à venir » la remplace. Un film retiré du catalogue (`actif = false`) ou un identifiant invalide renvoie une page introuvable.
+- **Restent :** la traduction de l'interface, les horaires regroupés par jour, la recherche et les filtres.
 
 ### E2 — Disponibilités et plan de salle en temps réel (U1, U2)
 - **Base :** `place` (rangée, numéro, position et accessibilité PMR pour dessiner le plan), vue `vue_places_seance` (état libre, verrouillée ou vendue pour chaque place d'une séance).

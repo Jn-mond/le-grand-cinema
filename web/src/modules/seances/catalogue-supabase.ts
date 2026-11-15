@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface SeanceAffichee {
   id: number;
+  filmId: number;
   debutAt: Date;
   version: string;
   prixCentimes: number;
@@ -18,6 +19,7 @@ export interface Choix {
 
 interface LigneSeance {
   id: number;
+  film_id: number;
   debut_at: string;
   version: string;
   prix_centimes: number;
@@ -27,11 +29,12 @@ interface LigneSeance {
 }
 
 const COLONNES =
-  "id, debut_at, version, prix_centimes, statut, film:film_id (titre, duree_minutes), salle:salle_id (nom)";
+  "id, film_id, debut_at, version, prix_centimes, statut, film:film_id (titre, duree_minutes), salle:salle_id (nom)";
 
 function versSeance(ligne: LigneSeance): SeanceAffichee {
   return {
     id: ligne.id,
+    filmId: ligne.film_id,
     debutAt: new Date(ligne.debut_at),
     version: ligne.version,
     prixCentimes: ligne.prix_centimes,
@@ -42,10 +45,13 @@ function versSeance(ligne: LigneSeance): SeanceAffichee {
   };
 }
 
-/** Séances à venir : publiées seulement pour le public (E1), toutes pour la programmation (E7). */
+/**
+ * Séances à venir : publiées seulement pour le public (E1), toutes pour la programmation (E7) ;
+ * celles d'un seul film pour sa fiche.
+ */
 export async function listerSeancesAVenir(
   client: SupabaseClient,
-  options: { publieesSeulement: boolean },
+  options: { publieesSeulement: boolean; filmId?: number },
 ): Promise<SeanceAffichee[]> {
   let requete = client
     .from("seance")
@@ -54,6 +60,7 @@ export async function listerSeancesAVenir(
     .order("debut_at")
     .limit(100);
   if (options.publieesSeulement) requete = requete.eq("statut", "publiee");
+  if (options.filmId !== undefined) requete = requete.eq("film_id", options.filmId);
   const { data, error } = await requete;
   if (error) throw new Error(`Lecture des séances impossible : ${error.message}`);
   return ((data ?? []) as unknown as LigneSeance[]).map(versSeance);
