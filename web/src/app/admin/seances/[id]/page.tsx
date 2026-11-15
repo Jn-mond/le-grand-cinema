@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { formaterDateHeure, formaterHeure } from "@/lib/dates";
+import { formaterDateHeure, formaterJourHeure } from "@/lib/dates";
 import { utilisateurConnecte } from "@/lib/session";
 import { clientSupabaseServeur } from "@/lib/supabase-serveur";
 import { schemaIdentifiantSeance } from "@/modules/reservations/schemas";
@@ -79,7 +79,7 @@ async function ReservationsSeance({ params }: { params: Promise<{ id: string }> 
                 <th>Places</th>
                 <th>Canal</th>
                 <th>Statut</th>
-                <th>Créée à</th>
+                <th>Créée le</th>
               </tr>
             </thead>
             <tbody>
@@ -93,7 +93,7 @@ async function ReservationsSeance({ params }: { params: Promise<{ id: string }> 
                   <td>{reservation.places.length > 0 ? reservation.places.join(", ") : "—"}</td>
                   <td>{libelleCanal(reservation.canal)}</td>
                   <td>{libelleStatut(reservation.statut)}</td>
-                  <td>{formaterHeure(reservation.creeAt)}</td>
+                  <td>{formaterJourHeure(reservation.creeAt)}</td>
                 </tr>
               ))}
             </tbody>

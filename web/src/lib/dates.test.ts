@@ -3,7 +3,7 @@ import { erreurLevee } from "../test/utilitaires";
 import {
   decalageParisMinutes,
   formaterDateHeure,
-  formaterHeure,
+  formaterJourHeure,
   formaterPrix,
   heureParisVersUtc,
 } from "./dates";
@@ -76,9 +76,11 @@ describe("formatage", () => {
     );
   });
 
-  it("affiche l'heure de Paris seule, en hiver comme en été", () => {
-    expect(formaterHeure(new Date("2026-11-20T14:42:00Z"))).toBe("15:42");
-    expect(formaterHeure(new Date("2026-07-14T14:42:00Z"))).toBe("16:42");
+  it("affiche une date courte et l'heure de Paris, en hiver comme en été", () => {
+    expect(formaterJourHeure(new Date("2026-11-20T14:42:00Z"))).toBe("20/11 à 15:42");
+    expect(formaterJourHeure(new Date("2026-07-14T14:42:00Z"))).toBe("14/07 à 16:42");
+    // 23:30 UTC le 14 novembre : déjà le 15 à Paris.
+    expect(formaterJourHeure(new Date("2026-11-14T23:30:00Z"))).toBe("15/11 à 00:30");
   });
 
   it("affiche un prix en euros à partir de centimes", () => {

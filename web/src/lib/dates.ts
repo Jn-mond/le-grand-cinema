@@ -59,15 +59,20 @@ export function formaterDateHeure(instant: Date): string {
   return formatDateHeure.format(instant);
 }
 
+const formatJour = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: FUSEAU,
+  day: "2-digit",
+  month: "2-digit",
+});
 const formatHeure = new Intl.DateTimeFormat("fr-FR", {
   timeZone: FUSEAU,
   hour: "2-digit",
   minute: "2-digit",
 });
 
-/** Heure de Paris seule : « 15:42 ». */
-export function formaterHeure(instant: Date): string {
-  return formatHeure.format(instant);
+/** Date courte et heure de Paris : « 15/11 à 15:42 », pour un tableau de suivi. */
+export function formaterJourHeure(instant: Date): string {
+  return `${formatJour.format(instant)} à ${formatHeure.format(instant)}`;
 }
 
 const formatPrix = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
