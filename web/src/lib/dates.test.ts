@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { erreurLevee } from "../test/utilitaires";
-import { decalageParisMinutes, formaterDateHeure, formaterPrix, heureParisVersUtc } from "./dates";
+import {
+  decalageParisMinutes,
+  formaterDateHeure,
+  formaterHeure,
+  formaterPrix,
+  heureParisVersUtc,
+} from "./dates";
 
 describe("decalageParisMinutes", () => {
   it("vaut une heure en hiver et deux heures en été", () => {
@@ -68,6 +74,11 @@ describe("formatage", () => {
     expect(formaterDateHeure(new Date("2026-11-20T19:30:00Z"))).toBe(
       "vendredi 20 novembre 2026 à 20:30",
     );
+  });
+
+  it("affiche l'heure de Paris seule, en hiver comme en été", () => {
+    expect(formaterHeure(new Date("2026-11-20T14:42:00Z"))).toBe("15:42");
+    expect(formaterHeure(new Date("2026-07-14T14:42:00Z"))).toBe("16:42");
   });
 
   it("affiche un prix en euros à partir de centimes", () => {

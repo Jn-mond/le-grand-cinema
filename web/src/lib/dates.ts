@@ -59,6 +59,17 @@ export function formaterDateHeure(instant: Date): string {
   return formatDateHeure.format(instant);
 }
 
+const formatHeure = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: FUSEAU,
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** Heure de Paris seule : « 15:42 ». */
+export function formaterHeure(instant: Date): string {
+  return formatHeure.format(instant);
+}
+
 const formatPrix = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 
 /** Exemple : 1250 → « 12,50 € ». */
