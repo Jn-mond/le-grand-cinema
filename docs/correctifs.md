@@ -106,3 +106,20 @@ Rien ne fait passer une réservation de `en_attente_paiement` à `expiree` dans 
 
 ### Correction et validation
 `statutAffiche()` affiche « Expirée » dès que le délai de 10 minutes est dépassé. Deux tests unitaires dans `regles.test.ts` ; vérifié en recette (LGC-LKJCDG passée de « En attente de paiement » à « Expirée »). La mise à jour du statut en base sera faite par la tâche planifiée lors de l'arrivée du paiement (E4).
+
+## C5 — Heure d'une séance enregistrée en UTC si le décalage de Paris était illisible (E7)
+
+| | |
+|---|---|
+| **Où** | `web/src/lib/dates.ts`, fonction `decalageParisMinutes()`, utilisée pour enregistrer l'horaire d'une séance saisi à l'heure de Paris. |
+| **Détecté par** | Mesure de couverture : 78,57 % des branches de `dates.ts`, lignes 14 à 16 jamais exécutées par les tests. |
+| **Gravité** | Faible probabilité, effet sérieux : une séance décalée d'une ou deux heures, sans aucun message d'erreur. |
+| **Statut** | Corrigé (Pull Request #19). |
+
+### Symptôme et cause
+La fonction lit le décalage de Paris (`GMT+01:00` en hiver, `GMT+02:00` en été) auprès du moteur JavaScript. Si le format renvoyé n'était pas celui attendu, elle répondait `0` sans prévenir : une séance saisie à 20:30 aurait été enregistrée à 19:30 en hiver ou à 18:30 en été. Aucun test ne passait par ce cas, ce que la couverture des branches a révélé.
+
+### Correction et validation
+- Un format illisible lève désormais une erreur explicite au lieu d'un repli silencieux sur UTC ; un décalage nul (`GMT`) est lu explicitement.
+- Deux tests simulent les formats que peut renvoyer le moteur (décalage nul, négatif, illisible, absent).
+- Résultat : 67 tests, couverture de 100 % (instructions, branches, fonctions, lignes).
