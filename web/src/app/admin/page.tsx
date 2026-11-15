@@ -11,6 +11,8 @@ import {
   type Remplissage as RemplissageSeance,
 } from "@/modules/pilotage/remplissage";
 import { lireRemplissages } from "@/modules/pilotage/remplissage-supabase";
+import { libelleReservations } from "@/modules/pilotage/reservations";
+import { lireReservationsParSeance } from "@/modules/pilotage/reservations-supabase";
 import {
   listerChoixProgrammation,
   listerSeancesAVenir,
@@ -49,12 +51,13 @@ async function Programmation() {
     listerChoixProgrammation(client),
     listerSeancesAVenir(client, { publieesSeulement: false }),
   ]);
-  const remplissages = await lireRemplissages(
-    client,
-    seances.map((seance) => seance.id),
-  );
+  const ids = seances.map((seance) => seance.id);
+  const [remplissages, reservations] = await Promise.all([
+    lireRemplissages(client, ids),
+    lireReservationsParSeance(client, ids),
+  ]);
   return (
-    <div className="colonnes">
+    <div className="colonnes programmation">
       <section className="carte">
         <h2>Nouvelle séance</h2>
         <FormulaireSeance films={choix.films} salles={choix.salles} />
@@ -71,6 +74,7 @@ async function Programmation() {
                 <th>Séance</th>
                 <th>Statut</th>
                 <th>Remplissage</th>
+                <th>Réservations</th>
                 <th>Site</th>
               </tr>
             </thead>
@@ -87,6 +91,11 @@ async function Programmation() {
                   <td>{libelleStatut(seance.statut)}</td>
                   <td>
                     <CelluleRemplissage remplissage={remplissages.get(seance.id)} />
+                  </td>
+                  <td>
+                    {libelleReservations(
+                      reservations.get(seance.id) ?? { confirmees: 0, enCours: 0 },
+                    )}
                   </td>
                   <td>
                     <BoutonPublication seanceId={seance.id} statut={seance.statut} />
