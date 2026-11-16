@@ -29,6 +29,9 @@ export default function PageAdmin() {
   return (
     <>
       <h1>Programmation</h1>
+      <p className="lien-secondaire">
+        <Link href="/admin/films">Gérer le catalogue des films</Link>
+      </p>
       <Suspense fallback={<p className="discret">Chargement…</p>}>
         <Programmation />
       </Suspense>

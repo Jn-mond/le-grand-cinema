@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0005) et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0007) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -207,6 +207,38 @@ select pg_temp.doit_etre_vrai('T45 liste vide : aucun effet',
   $q$select (select cardinality(places) = 0 from refus where test = 'T45')
         and (select count(*) = 1 from verrou_place
              where reservation_id = '10000000-0000-0000-0000-00000000000d')$q$);
+
+-- T46..T53 : créer et modifier un film (migration 0007, E7)
+create temp table film_cree as
+  select enregistrer_film(null, 'Film test D', null, 100::smallint, 0::smallint, null,
+                          'Synopsis fictif D.', null, true, array[1, 2, 2]::smallint[]) as id;
+select pg_temp.doit_etre_vrai('T46 un film est créé avec ses genres, un genre en double compté une fois',
+  $q$select exists (select 1 from film where id = (select id from film_cree) and titre = 'Film test D' and actif)
+        and (select count(*) = 2 from film_genre where film_id = (select id from film_cree))$q$);
+select enregistrer_film((select id from film_cree), 'Film test D2', 'Test movie D', 105::smallint, 12::smallint,
+                        current_date, null, 'https://exemple.test/affiche-d.jpg', false, array[3]::smallint[]);
+select pg_temp.doit_etre_vrai('T47 une modification remplace la fiche et les genres',
+  $q$select exists (select 1 from film where id = (select id from film_cree) and titre = 'Film test D2'
+                    and duree_minutes = 105 and age_minimum = 12 and not actif and synopsis_fr is null)
+        and (select array_agg(genre_id) = array[3]::smallint[] from film_genre where film_id = (select id from film_cree))$q$);
+select pg_temp.doit_echouer('T48 la durée d''un film programmé à venir ne change plus',
+  $q$select enregistrer_film((select id from film where titre = 'Film test A'), 'Film test A', 'Test movie A',
+                             121::smallint, 0::smallint, null, 'Synopsis fictif A.', null, true, array[1]::smallint[])$q$, 'LGC01');
+-- Appel et vérification séparés : une sous-requête de la même instruction ne verrait pas la modification.
+select enregistrer_film((select id from film where titre = 'Film test A'), 'Film test A (version restaurée)', 'Test movie A',
+                        120::smallint, 0::smallint, null, 'Synopsis fictif A.', null, true, array[1, 4]::smallint[]);
+select pg_temp.doit_etre_vrai('T49 un film programmé reste modifiable si sa durée ne change pas',
+  $q$select (select count(*) = 2 from film_genre fg join film f on f.id = fg.film_id
+             where f.titre = 'Film test A (version restaurée)' and f.duree_minutes = 120)$q$);
+select pg_temp.doit_etre_vrai('T50 un film introuvable n''est pas créé à la place',
+  $q$select enregistrer_film(999999, 'Fantôme', null, 90::smallint, 0::smallint, null, null, null, true, '{}') is null
+        and not exists (select 1 from film where titre = 'Fantôme')$q$);
+select pg_temp.doit_echouer('T51 titre vide refusé',
+  $q$insert into film (titre, duree_minutes) values ('   ', 90)$q$, '23514');
+select pg_temp.doit_echouer('T52 affiche en http refusée',
+  $q$insert into film (titre, duree_minutes, affiche_url) values ('Film http', 90, 'http://exemple.test/a.jpg')$q$, '23514');
+select pg_temp.doit_echouer('T53 genre inconnu refusé, rien n''est enregistré',
+  $q$select enregistrer_film(null, 'Film genre inconnu', null, 90::smallint, 0::smallint, null, null, null, true, array[99]::smallint[])$q$, '23503');
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;

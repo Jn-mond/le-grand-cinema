@@ -23,6 +23,7 @@ Ce document décrit comment les personnes se connectent à l'application, commen
 | `/connexion` | Public | Formulaire de connexion |
 | `/espace` | Toute personne connectée | Profil et réservations rattachées au compte (E6) |
 | `/admin` | Rôles `programmateur` et `administrateur` | Séances à venir, création d'une séance, publication ou retrait du site (E7) |
+| `/admin/films` et `/admin/films/{id}` | Rôles `programmateur` et `administrateur` | Catalogue des films, actifs ou non ; création et modification d'un film avec ses genres (E7) |
 | `/admin/seances/{id}` | Rôles `accueil`, `programmateur` et `administrateur` | Réservations d'une séance : référence, client, places, canal, statut, date de création (E8) |
 
 Après connexion, le personnel de programmation arrive sur `/admin`, les autres sur `/espace`. En cas d'échec, le message est le même que l'adresse existe ou non, pour ne pas révéler quels comptes existent. Supabase Auth limite par ailleurs le nombre de tentatives de connexion.
