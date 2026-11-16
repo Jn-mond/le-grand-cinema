@@ -123,3 +123,21 @@ La fonction lit le décalage de Paris (`GMT+01:00` en hiver, `GMT+02:00` en ét�
 - Un format illisible lève désormais une erreur explicite au lieu d'un repli silencieux sur UTC ; un décalage nul (`GMT`) est lu explicitement.
 - Deux tests simulent les formats que peut renvoyer le moteur (décalage nul, négatif, illisible, absent).
 - Résultat : 67 tests, couverture de 100 % (instructions, branches, fonctions, lignes).
+
+## C6 — Saisie effacée après un refus dans les formulaires de programmation (E7)
+
+| | |
+|---|---|
+| **Où** | `web/src/app/admin/formulaire-seance.tsx` (programmer une séance) et `web/src/app/admin/films/formulaire-film.tsx` (créer ou modifier un film). |
+| **Détecté par** | Recette de la story « Créer et modifier un film » : après le refus d'un changement de durée, le champ affichait de nouveau l'ancienne valeur. |
+| **Gravité** | Moyenne : aucune donnée fausse, mais une seule erreur (créneau occupé, affiche en http) effaçait tout ce qui avait été saisi. |
+| **Statut** | Corrigé, sur la branche `feature/e7-gestion-films`. |
+
+### Symptôme et cause
+React remet un formulaire à ses valeurs par défaut à la fin de chaque action serveur, y compris quand le serveur refuse la saisie et renvoie un message d'erreur. Les formulaires ne gardaient donc que le message : le personnel devait tout ressaisir. Le défaut existait déjà dans le formulaire de programmation des séances ; la recette du formulaire des films l'a fait apparaître.
+
+### Correction et validation
+- En cas de refus, l'action renvoie la saisie avec le message (`lib/formulaire.ts`, `valeursSaisies()`), et le formulaire la reprend comme valeurs par défaut ; seuls les champs attendus sont renvoyés, pas les champs techniques de Next.js.
+- Les listes déroulantes portent une clé tirée de la valeur à afficher : React ne les remet pas sur une nouvelle valeur par défaut lors de la remise à zéro, la clé les recrée avec la bonne valeur.
+- Le message affiché est désormais le premier problème de la saisie (« Prix invalide (exemple : 12,50) ») plutôt que « Données invalides ».
+- Vérifié dans un navigateur (Chromium) : après un refus, chaque champ, liste et case garde la saisie ; après un succès, le formulaire de création se vide. Quatre tests unitaires couvrent la lecture de la saisie et le choix du message.

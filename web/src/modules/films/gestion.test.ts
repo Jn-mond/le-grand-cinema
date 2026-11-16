@@ -4,7 +4,6 @@ import { valider } from "../reservations/schemas";
 import {
   enregistrerFilm,
   lireFormulaireFilm,
-  messageSaisie,
   schemaFilm,
   type DepotGestionFilms,
   type FilmSaisi,
@@ -131,33 +130,5 @@ describe("enregistrerFilm", () => {
     const erreur = await enregistrerFilm(depot, film, 7).catch((e) => e);
     expect(erreur.code).toBe("FILM_AVEC_SEANCES");
     expect(erreur.statut).toBe(409);
-  });
-});
-
-describe("messageSaisie", () => {
-  it("affiche le premier problème d'une saisie invalide", () => {
-    const erreur = new ErreurApplication("REQUETE_INVALIDE", "Données invalides", {
-      erreurs: [{ champ: "titre", message: "Le titre est obligatoire" }],
-    });
-    expect(messageSaisie(erreur)).toBe("Le titre est obligatoire");
-  });
-
-  it("garde le message de l'erreur dans les autres cas", () => {
-    expect(messageSaisie(new ErreurApplication("FILM_INTROUVABLE", "Film introuvable"))).toBe(
-      "Film introuvable",
-    );
-    expect(messageSaisie(new ErreurApplication("REQUETE_INVALIDE", "Données invalides", {}))).toBe(
-      "Données invalides",
-    );
-    expect(
-      messageSaisie(
-        new ErreurApplication("REQUETE_INVALIDE", "Données invalides", { erreurs: [] }),
-      ),
-    ).toBe("Données invalides");
-    expect(
-      messageSaisie(
-        new ErreurApplication("REQUETE_INVALIDE", "Données invalides", { erreurs: [{}] }),
-      ),
-    ).toBe("Données invalides");
   });
 });

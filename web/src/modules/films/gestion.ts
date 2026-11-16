@@ -105,13 +105,3 @@ export async function enregistrerFilm(
   }
   return resultat;
 }
-
-/** Message à afficher pour une saisie refusée : le premier problème, sinon un message général. */
-export function messageSaisie(erreur: ErreurApplication): string {
-  const erreurs = erreur.details?.erreurs;
-  if (erreur.code === "REQUETE_INVALIDE" && Array.isArray(erreurs) && erreurs.length > 0) {
-    const premier = erreurs[0] as { message?: unknown };
-    if (typeof premier.message === "string") return premier.message;
-  }
-  return erreur.message;
-}
