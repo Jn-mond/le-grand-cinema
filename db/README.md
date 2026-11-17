@@ -39,7 +39,7 @@ PGDATABASE=lgc_test ./db/tests/concurrence_paiement.sh         # 10 paiements, u
 PGDATABASE=lgc_test ./db/tests/concurrence_controle.sh         # 10 postes, un seul billet : 1 seule entrée
 ```
 
-`contraintes.sql` affiche un tableau « OK / ÉCHEC » et s'arrête en erreur si un test échoue. Les quatre tests se lancent **après** le jeu d'essai.
+`contraintes.sql` affiche un tableau « OK / ÉCHEC » et s'arrête en erreur si un test échoue. Les quatre tests se lancent **après** le jeu d'essai. La vérification automatique (GitHub Actions) les rejoue tous à chaque Pull Request, sur un PostgreSQL 16 vierge.
 
 ## Ajouter une évolution
 
