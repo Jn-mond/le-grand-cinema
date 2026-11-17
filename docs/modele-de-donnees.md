@@ -2,7 +2,7 @@
 
 Ce document décrit la base de données de l'application de réservation : ce qu'elle contient, les règles qu'elle garantit elle-même, et comment la faire évoluer avec les bons outils.
 
-- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche) [`0004_verrou_non_prolongeable.sql`](../db/migrations/0004_verrou_non_prolongeable.sql) (correctif du verrou) [`0005_verrou_multiple_et_securite_api.sql`](../db/migrations/0005_verrou_multiple_et_securite_api.sql) (verrouillage de plusieurs places, protection de l'API) [`0006_authentification.sql`](../db/migrations/0006_authentification.sql) (création de l'utilisateur à l'inscription, voir [`authentification.md`](authentification.md)) et [`0007_gestion_films.sql`](../db/migrations/0007_gestion_films.sql) (créer et modifier un film avec ses genres)
+- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche) [`0004_verrou_non_prolongeable.sql`](../db/migrations/0004_verrou_non_prolongeable.sql) (correctif du verrou) [`0005_verrou_multiple_et_securite_api.sql`](../db/migrations/0005_verrou_multiple_et_securite_api.sql) (verrouillage de plusieurs places, protection de l'API) [`0006_authentification.sql`](../db/migrations/0006_authentification.sql) (création de l'utilisateur à l'inscription, voir [`authentification.md`](authentification.md)) [`0007_gestion_films.sql`](../db/migrations/0007_gestion_films.sql) (créer et modifier un film avec ses genres) et [`0008_paiement.sql`](../db/migrations/0008_paiement.sql) (paiement en ligne, voir [`paiement.md`](paiement.md))
 - Schéma modifiable : [`docs/schema_base_de_donnees.drawio`](schema_base_de_donnees.drawio) (ouvrir avec [draw.io](https://app.diagrams.net) ou l'extension VS Code « Draw.io Integration »)
 - Image du schéma : [`docs/schema_base_de_donnees.png`](schema_base_de_donnees.png)
 - Tests et jeu d'essai : [`db/`](../db/README.md)
@@ -120,7 +120,7 @@ erDiagram
 | `place` | Un siège d'une salle, identifié par rangée + numéro. | `id` | Unique par (salle, rangée, numéro). `accessible_pmr`, `position_x` et `position_y` servent au plan de salle. |
 | `seance` | Projection d'un film dans une salle à une date et une heure. | `id` | Prix en centimes. Statut : brouillon, publiée, annulée. Deux séances non annulées ne peuvent pas se chevaucher dans la même salle. |
 | `reservation` | Ensemble de places demandées pour une séance. | `id` (uuid) | `canal` distingue la vente en ligne de la vente au guichet. En ligne, l'e-mail est obligatoire et `utilisateur_id` est vide pour une réservation sans compte (« invité ») : l'e-mail permet de retrouver les billets. Au guichet, l'e-mail est facultatif et `vendeur_id` désigne le membre du personnel qui a vendu. `reference` est un code court et unique (ex. `LGC-7K4Q2M`) à communiquer au client ; `nom_client` est facultatif. |
-| `commande` | Tentative de paiement associée à une réservation. | `id` (uuid) | Montant en centimes. Plusieurs tentatives possibles, une seule peut être « payée ». |
+| `commande` | Tentative de paiement associée à une réservation. | `id` (uuid) | Montant en centimes et places payées (`places`, migration 0008). Plusieurs tentatives possibles, une seule peut être « payée ». |
 | `evenement_paiement` | Journal des messages reçus du prestataire de paiement. | `id` (texte fourni par le prestataire) | Sert à ne traiter chaque message qu'une fois (idempotence). Aucune clé étrangère, volontairement. |
 | `verrou_place` | Blocage temporaire (10 minutes) d'une place pendant le paiement. | (`seance_id`, `place_id`) | Une place ne peut être bloquée que par une seule réservation à la fois. |
 | `billet` | Une place vendue = un billet, avec un jeton pour le QR code. | `id` (uuid) | Un seul billet valide ou utilisé par place et par séance. |
@@ -160,13 +160,14 @@ Chaque règle importante est appliquée par la base elle-même, pas seulement pa
 | Une séance finit après son début ; les prix et montants ne sont pas négatifs. | Contraintes `CHECK`. |
 | Une réservation « confirmée » a une date de confirmation, une commande « payée » a une date de paiement, un billet « utilisé » a une date d'utilisation. | Contraintes `CHECK` de cohérence. |
 | Une réservation ne peut être payée qu'une fois. | Index unique partiel `commande_une_seule_payee`. |
+| Un paiement n'est prélevé que si ses billets ont pu être créés ; un paiement arrivé après l'expiration du verrou n'est accepté que si la place est restée libre. | Fonction `confirmer_commande()` (migration 0008) et capture différée côté application ([`paiement.md`](paiement.md)). |
 | Un message du prestataire de paiement n'est traité qu'une fois. | Clé primaire de `evenement_paiement` : un doublon est refusé à l'insertion. |
 | Une réservation en ligne a toujours une adresse e-mail ; une vente au guichet a toujours un vendeur et peut se passer d'e-mail (le stock de places est le même que celui du site). | Contraintes `CHECK` `reservation_email_coherent` et `reservation_vendeur_coherent` (migration 0002). |
 | Chaque réservation a une référence courte, unique et lisible, sans caractères ambigus (0, O, 1, I). | Fonction `generer_reference()` en valeur par défaut, contrainte `UNIQUE` et contrainte `CHECK` de format (migration 0003). |
 | Une adresse e-mail n'a qu'un compte, sans distinction de majuscules ; son format est vérifié. | Index unique sur `lower(email)` et contrainte `CHECK`. |
 | On ne supprime pas par erreur un film, une salle ou une séance utilisés. | Clés étrangères en `ON DELETE RESTRICT`. |
 
-Les 53 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
+Les 64 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles. [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient ; [`db/tests/concurrence_paiement.sh`](../db/tests/concurrence_paiement.sh), que 10 paiements confirmés au même instant pour la même place ne produisent qu'un billet.
 
 ## 4. Choix de conception
 

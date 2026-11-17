@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0007) et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0008) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -239,6 +239,86 @@ select pg_temp.doit_echouer('T52 affiche en http refusée',
   $q$insert into film (titre, duree_minutes, affiche_url) values ('Film http', 90, 'http://exemple.test/a.jpg')$q$, '23514');
 select pg_temp.doit_echouer('T53 genre inconnu refusé, rien n''est enregistré',
   $q$select enregistrer_film(null, 'Film genre inconnu', null, 90::smallint, 0::smallint, null, null, null, true, array[99]::smallint[])$q$, '23503');
+
+-- T54..T64 : paiement (0008). Places 18 à 24 de la salle 1, libres jusqu'ici.
+insert into reservation (id, seance_id, email) values
+ ('e0000000-0000-0000-0000-000000000001', 1, 'e1@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000002', 1, 'e2@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000003', 1, 'e3@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000004', 1, 'e4@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000005', 1, 'e5@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000006', 1, 'e6@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000007', 1, 'e7@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000008', 1, 'e8@exemple.test');
+select poser_verrous('e0000000-0000-0000-0000-000000000001', array[20, 21]);
+create temp table cmd1 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000001');
+select pg_temp.doit_etre_vrai('T54 une commande reprend les places bloquées et leur prix',
+  $q$select (select montant = 2500 and nb_places = 2 and prix_unitaire = 1250 and titre_film is not null from cmd1)
+        and exists (select 1 from commande c join cmd1 on c.id = cmd1.commande_id
+                    where c.statut = 'en_attente' and c.places = array[20, 21]::bigint[] and c.montant_centimes = 2500)$q$);
+select pg_temp.doit_echouer('T55 pas de commande sans place encore bloquée',
+  $q$select * from ouvrir_commande('e0000000-0000-0000-0000-000000000002')$q$, 'LGC02');
+select pg_temp.doit_echouer('T56 pas de commande pour une réservation inconnue',
+  $q$select * from ouvrir_commande('e0000000-0000-0000-0000-0000000000ff')$q$, 'LGC04');
+
+create temp table conf1 as select confirmer_commande((select commande_id from cmd1), 'pi_test_1', 2500) as r;
+select pg_temp.doit_etre_vrai('T57 paiement confirmé : billets créés, verrous levés, réservation confirmée',
+  $q$select (select r = 'confirmee' from conf1)
+        and (select count(*) = 2 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001'
+                                               and statut = 'valide' and prix_centimes = 1250)
+        and not exists (select 1 from verrou_place where reservation_id = 'e0000000-0000-0000-0000-000000000001')
+        and exists (select 1 from reservation where id = 'e0000000-0000-0000-0000-000000000001' and statut = 'confirmee')
+        and exists (select 1 from commande where id = (select commande_id from cmd1)
+                    and statut = 'payee' and prestataire_paiement_id = 'pi_test_1')$q$);
+select pg_temp.doit_etre_vrai('T58 un webhook reçu deux fois ne crée pas de billet en plus',
+  $q$select confirmer_commande((select commande_id from cmd1), 'pi_test_1', 2500) = 'deja_confirmee'
+        and (select count(*) = 2 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001')$q$);
+select pg_temp.doit_echouer('T59 pas de nouvelle commande pour une réservation confirmée',
+  $q$select * from ouvrir_commande('e0000000-0000-0000-0000-000000000001')$q$, 'LGC03');
+
+-- Paiement tardif : le verrou a expiré pendant que le client était sur la page de paiement.
+select poser_verrous('e0000000-0000-0000-0000-000000000003', array[22]);
+create temp table cmd3 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000003');
+update verrou_place set expire_at = now() - interval '1 second' where reservation_id = 'e0000000-0000-0000-0000-000000000003';
+create temp table conf3 as select confirmer_commande((select commande_id from cmd3), 'pi_test_3', 1250) as r;
+select pg_temp.doit_etre_vrai('T60 paiement tardif accepté si personne n''a pris la place',
+  $q$select (select r = 'confirmee' from conf3)
+        and exists (select 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000003' and place_id = 22)$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000004', array[23]);
+create temp table cmd4 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000004');
+update verrou_place set expire_at = now() - interval '1 second' where reservation_id = 'e0000000-0000-0000-0000-000000000004';
+select poser_verrous('e0000000-0000-0000-0000-000000000005', array[23]);   -- un autre client reprend la place
+create temp table conf4 as select confirmer_commande((select commande_id from cmd4), 'pi_test_4', 1250) as r;
+select pg_temp.doit_etre_vrai('T61 paiement tardif refusé si la place a été reprise : aucun billet, verrou de l''autre client intact',
+  $q$select (select r = 'places_perdues' from conf4)
+        and not exists (select 1 from billet where place_id = 23 and seance_id = 1)
+        and exists (select 1 from commande where id = (select commande_id from cmd4) and statut = 'echouee')
+        and exists (select 1 from reservation where id = 'e0000000-0000-0000-0000-000000000004' and statut = 'expiree')
+        and exists (select 1 from verrou_place where place_id = 23 and reservation_id = 'e0000000-0000-0000-0000-000000000005')$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000006', array[24]);
+create temp table cmd6 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000006');
+select pg_temp.doit_etre_vrai('T62 montant différent de la commande refusé, aucun billet',
+  $q$select confirmer_commande((select commande_id from cmd6), 'pi_test_6', 1) = 'montant_incorrect'
+        and not exists (select 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000006')$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000007', array[19]);
+create temp table cmd7a as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000007');
+create temp table cmd7b as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000007');
+select confirmer_commande((select commande_id from cmd7a), 'pi_test_7a', 1250);
+select pg_temp.doit_etre_vrai('T63 une seconde page de paiement réglée ensuite est refusée',
+  $q$select confirmer_commande((select commande_id from cmd7b), 'pi_test_7b', 1250) = 'reservation_close'
+        and (select count(*) = 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000007')$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000008', array[18]);
+create temp table cmd8 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000008');
+create temp table ab8 as select abandonner_commande((select commande_id from cmd8)) as a8,
+                               abandonner_commande((select commande_id from cmd1)) as a1;
+select pg_temp.doit_etre_vrai('T64 une commande en attente est abandonnée, une commande payée ne l''est pas',
+  $q$select (select a8 and a1 is null from ab8)
+        and exists (select 1 from commande where id = (select commande_id from cmd1) and statut = 'payee')
+        and exists (select 1 from commande where id = (select commande_id from cmd8) and statut = 'abandonnee')$q$);
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;
