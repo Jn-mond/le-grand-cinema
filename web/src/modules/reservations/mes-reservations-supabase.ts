@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface ReservationAffichee {
+  id: string;
   reference: string;
   statut: string;
   creeAt: Date;
@@ -9,6 +10,7 @@ export interface ReservationAffichee {
 }
 
 interface LigneReservation {
+  id: string;
   reference: string;
   statut: string;
   cree_at: string;
@@ -22,12 +24,13 @@ export async function listerReservationsDe(
 ): Promise<ReservationAffichee[]> {
   const { data, error } = await client
     .from("reservation")
-    .select("reference, statut, cree_at, seance:seance_id (debut_at, film:film_id (titre))")
+    .select("id, reference, statut, cree_at, seance:seance_id (debut_at, film:film_id (titre))")
     .eq("utilisateur_id", utilisateurId)
     .order("cree_at", { ascending: false })
     .limit(50);
   if (error) throw new Error(`Lecture des réservations impossible : ${error.message}`);
   return ((data ?? []) as unknown as LigneReservation[]).map((ligne) => ({
+    id: ligne.id,
     reference: ligne.reference,
     statut: ligne.statut,
     creeAt: new Date(ligne.cree_at),

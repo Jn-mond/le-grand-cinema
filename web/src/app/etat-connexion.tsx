@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { utilisateurConnecte } from "@/lib/session";
-import { peutProgrammer } from "@/modules/utilisateurs/roles";
+import { peutControlerBillets, peutProgrammer } from "@/modules/utilisateurs/roles";
 import { seDeconnecter } from "./connexion/actions";
 
 /** Liens d'en-tête selon la personne connectée (lus à chaque requête, derrière un Suspense). */
@@ -14,6 +14,7 @@ export async function EtatConnexion() {
   return (
     <>
       {peutProgrammer(utilisateur.role) ? <Link href="/admin">Programmation</Link> : null}
+      {peutControlerBillets(utilisateur.role) ? <Link href="/controle">Contrôle</Link> : null}
       <Link href="/espace">Mon espace</Link>
       <form action={seDeconnecter}>
         <button type="submit" className="lien">

@@ -3,6 +3,7 @@ import {
   libelleRole,
   pageApresConnexion,
   peutConsulterReservations,
+  peutControlerBillets,
   peutProgrammer,
   type Role,
 } from "./roles";
@@ -18,6 +19,16 @@ describe("peutProgrammer", () => {
 describe("peutConsulterReservations", () => {
   it("autorise l'accueil et la programmation, pas les clients", () => {
     expect(TOUS.filter(peutConsulterReservations)).toEqual([
+      "accueil",
+      "programmateur",
+      "administrateur",
+    ]);
+  });
+});
+
+describe("peutControlerBillets", () => {
+  it("autorise le personnel de l'accueil et de la programmation, pas les clients", () => {
+    expect(TOUS.filter(peutControlerBillets)).toEqual([
       "accueil",
       "programmateur",
       "administrateur",

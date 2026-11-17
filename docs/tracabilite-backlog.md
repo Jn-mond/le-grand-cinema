@@ -12,7 +12,7 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 | E2 Disponibilités et plan de salle en temps réel | MVP | Must | Couvert (diffusion en temps réel : application) |
 | E3 Réservation et verrou de places | MVP | Must | Couvert |
 | E4 Paiement en ligne sécurisé | MVP | Must | Couvert depuis la migration 0008 (Stripe en mode test) |
-| E5 Billet dématérialisé et contrôle d'accès | MVP | Must | Couvert (signature du QR code : application) |
+| E5 Billet dématérialisé et contrôle d'accès | MVP | Must | Couvert depuis la migration 0009 (envoi par e-mail : à venir) |
 | E6 Réservation invité et compte client | MVP / V1 | Should | Couvert pour l'invité ; connexion et espace client depuis la migration 0006 |
 | E7 Gestion de la programmation | MVP | Must | Partiel (un seul prix par séance) |
 | E8 Suivi des réservations et ventes guichet | MVP | Must | Couvert depuis la migration 0002 |
@@ -52,7 +52,10 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 
 ### E5 — Billet dématérialisé et contrôle d'accès (U1, U2, U4)
 - **Base :** `billet` avec un `jeton_qr` unique et un statut `valide`, `utilise` ou `annule`. Un billet « utilisé » doit porter sa date d'utilisation (contrainte `billet_utilisation_coherente`) ; le contrôle d'accès refuse un billet déjà utilisé en lisant ce statut.
-- **Application :** signature cryptographique du QR code (la base ne stocke que le jeton), envoi par e-mail, scan accepté ou refusé en moins de 2 secondes.
+- **Billet avec QR code** (branche `feature/e5-billets-controle`) : après le paiement, la page `/reservations/{id}` affiche un QR code par place, qui contient le jeton du billet, avec le code en clair et l'état du billet (valide ou utilisé). « Mon espace » donne accès aux billets de chaque réservation confirmée. Le jeton est aléatoire et vérifié en base : il n'a pas besoin d'être signé.
+- **Contrôler un billet à l'entrée** : page `/controle` (rôles accueil, programmateur, administrateur), utilisable avec une douchette. La migration 0009 ajoute `controler_billet()` : un seul `UPDATE … WHERE statut = 'valide'` vérifie et marque le billet, de 60 minutes avant la séance jusqu'à sa fin (tests T65 à T72).
+- **Refuser un billet déjà utilisé** : le second passage affiche « Billet déjà utilisé » avec l'heure du premier ; deux postes qui scannent le même billet au même instant n'ouvrent qu'une entrée (`db/tests/concurrence_controle.sh`). Détail : [`billets.md`](billets.md).
+- **Restent :** l'envoi des billets par e-mail (pas de domaine d'envoi vérifié) et la mesure du temps de réponse au scan en conditions réelles.
 
 ### E6 — Réservation invité et compte client (U1, U2)
 - **Base :** `reservation.utilisateur_id` vide pour un invité, avec l'e-mail obligatoire en ligne pour retrouver les billets ; table `utilisateur` reliée à Supabase Auth (migration 0006) : connexion par e-mail et mot de passe, et page `/espace` qui liste les réservations du compte (voir `docs/authentification.md`).
