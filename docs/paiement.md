@@ -43,16 +43,17 @@ Autres protections :
 
 ## Mettre en place (mode test)
 
-1. **Clé secrète de test** : tableau de bord Stripe (sandbox) > *Développeurs* > *Clés API* > clé secrète `sk_test_…`. La copier dans `web/.env.local` (`STRIPE_SECRET_KEY=`), jamais dans le dépôt.
-2. **Migration** : exécuter `db/migrations/0008_paiement.sql` dans le *SQL Editor* de Supabase.
-3. **Webhook en local** avec la [Stripe CLI](https://docs.stripe.com/stripe-cli) :
+1. **Moyens de paiement** : ils se règlent dans le tableau de bord Stripe (*Paramètres* > *Moyens de paiement*), plus dans le code ; la carte bancaire y est active par défaut. Stripe ne propose sur la page que les moyens compatibles avec la capture différée.
+2. **Clé secrète de test** : tableau de bord Stripe (sandbox) > *Développeurs* > *Clés API* > clé secrète `sk_test_…`. La copier dans `web/.env.local` (`STRIPE_SECRET_KEY=`), jamais dans le dépôt.
+3. **Migration** : exécuter `db/migrations/0008_paiement.sql` dans le *SQL Editor* de Supabase.
+4. **Webhook en local** avec la [Stripe CLI](https://docs.stripe.com/stripe-cli) :
    ```bash
    stripe login
    stripe listen --forward-to localhost:3000/api/paiements/webhook \
      --events checkout.session.completed,checkout.session.expired
    ```
    La commande affiche un secret `whsec_…` : le copier dans `web/.env.local` (`STRIPE_WEBHOOK_SECRET=`), relancer `npm run dev`.
-4. **Webhook du site en ligne** : *Développeurs* > *Webhooks* > *Ajouter une destination*, adresse `https://le-grand-cinema.vercel.app/api/paiements/webhook`, événements `checkout.session.completed` et `checkout.session.expired`. Le secret de signature de cette destination (différent de celui de la CLI) et la clé `sk_test_…` vont dans Vercel > *Settings* > *Environment Variables*, puis on redéploie.
+5. **Webhook du site en ligne** : *Développeurs* > *Webhooks* > *Ajouter une destination*, adresse `https://le-grand-cinema.vercel.app/api/paiements/webhook`, événements `checkout.session.completed` et `checkout.session.expired`. Le secret de signature de cette destination (différent de celui de la CLI) et la clé `sk_test_…` vont dans Vercel > *Settings* > *Environment Variables*, puis on redéploie.
 
 ## Recette
 

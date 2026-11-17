@@ -51,6 +51,7 @@ describe("PasserelleStripe", () => {
     expect(appel.corps.get("metadata[commande_id]")).toBe("c-1");
     expect(appel.corps.get("expires_at")).toBe(String(Date.UTC(2026, 10, 20, 17, 31) / 1000));
     expect(appel.corps.get("customer_email")).toBe("client@exemple.test");
+    expect(appel.corps.has("payment_method_types[0]")).toBe(false);
   });
 
   it("refuse une réponse de Stripe sans adresse de paiement", async () => {

@@ -76,7 +76,8 @@ export class PasserelleStripe implements PasserellePaiement {
       {
         mode: "payment",
         locale: "fr",
-        "payment_method_types[0]": "card",
+        // Pas de payment_method_types : Stripe le refuse désormais, les moyens de paiement se
+        // règlent dans le tableau de bord (carte bancaire active par défaut).
         "line_items[0][quantity]": String(demande.quantite),
         "line_items[0][price_data][currency]": "eur",
         "line_items[0][price_data][unit_amount]": String(demande.prixUnitaireCentimes),
