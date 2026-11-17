@@ -5,6 +5,8 @@
 | [`modele-de-donnees.md`](modele-de-donnees.md) | Base de données : schéma, dictionnaire des tables, règles de gestion, outils et méthode d'évolution. |
 | [`tracabilite-backlog.md`](tracabilite-backlog.md) | Lien entre chaque EPIC du backlog et ce que la base de données apporte. |
 | [`authentification.md`](authentification.md) | Connexion, rôles, contrôle d'accès et création des comptes de démonstration. |
+| [`paiement.md`](paiement.md) | Paiement Stripe en mode test : parcours, paiement tardif, mise en place et recette. |
+| [`billets.md`](billets.md) | Billets avec QR code et contrôle à l'entrée : flux, refus d'un billet déjà utilisé, recette. |
 | [`api.md`](api.md) | API REST : routes, erreurs, documentation OpenAPI et architecture du code. |
 | [`qualite.md`](qualite.md) | Outils de qualité du code, vérification automatique, SonarQube Cloud, couverture. |
 | [`correctifs.md`](correctifs.md) | Journal des bogues : cause, reproduction, correction et validation. |

@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0005) et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0009) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -207,6 +207,156 @@ select pg_temp.doit_etre_vrai('T45 liste vide : aucun effet',
   $q$select (select cardinality(places) = 0 from refus where test = 'T45')
         and (select count(*) = 1 from verrou_place
              where reservation_id = '10000000-0000-0000-0000-00000000000d')$q$);
+
+-- T46..T53 : créer et modifier un film (migration 0007, E7)
+create temp table film_cree as
+  select enregistrer_film(null, 'Film test D', null, 100::smallint, 0::smallint, null,
+                          'Synopsis fictif D.', null, true, array[1, 2, 2]::smallint[]) as id;
+select pg_temp.doit_etre_vrai('T46 un film est créé avec ses genres, un genre en double compté une fois',
+  $q$select exists (select 1 from film where id = (select id from film_cree) and titre = 'Film test D' and actif)
+        and (select count(*) = 2 from film_genre where film_id = (select id from film_cree))$q$);
+select enregistrer_film((select id from film_cree), 'Film test D2', 'Test movie D', 105::smallint, 12::smallint,
+                        current_date, null, 'https://exemple.test/affiche-d.jpg', false, array[3]::smallint[]);
+select pg_temp.doit_etre_vrai('T47 une modification remplace la fiche et les genres',
+  $q$select exists (select 1 from film where id = (select id from film_cree) and titre = 'Film test D2'
+                    and duree_minutes = 105 and age_minimum = 12 and not actif and synopsis_fr is null)
+        and (select array_agg(genre_id) = array[3]::smallint[] from film_genre where film_id = (select id from film_cree))$q$);
+select pg_temp.doit_echouer('T48 la durée d''un film programmé à venir ne change plus',
+  $q$select enregistrer_film((select id from film where titre = 'Film test A'), 'Film test A', 'Test movie A',
+                             121::smallint, 0::smallint, null, 'Synopsis fictif A.', null, true, array[1]::smallint[])$q$, 'LGC01');
+-- Appel et vérification séparés : une sous-requête de la même instruction ne verrait pas la modification.
+select enregistrer_film((select id from film where titre = 'Film test A'), 'Film test A (version restaurée)', 'Test movie A',
+                        120::smallint, 0::smallint, null, 'Synopsis fictif A.', null, true, array[1, 4]::smallint[]);
+select pg_temp.doit_etre_vrai('T49 un film programmé reste modifiable si sa durée ne change pas',
+  $q$select (select count(*) = 2 from film_genre fg join film f on f.id = fg.film_id
+             where f.titre = 'Film test A (version restaurée)' and f.duree_minutes = 120)$q$);
+select pg_temp.doit_etre_vrai('T50 un film introuvable n''est pas créé à la place',
+  $q$select enregistrer_film(999999, 'Fantôme', null, 90::smallint, 0::smallint, null, null, null, true, '{}') is null
+        and not exists (select 1 from film where titre = 'Fantôme')$q$);
+select pg_temp.doit_echouer('T51 titre vide refusé',
+  $q$insert into film (titre, duree_minutes) values ('   ', 90)$q$, '23514');
+select pg_temp.doit_echouer('T52 affiche en http refusée',
+  $q$insert into film (titre, duree_minutes, affiche_url) values ('Film http', 90, 'http://exemple.test/a.jpg')$q$, '23514');
+select pg_temp.doit_echouer('T53 genre inconnu refusé, rien n''est enregistré',
+  $q$select enregistrer_film(null, 'Film genre inconnu', null, 90::smallint, 0::smallint, null, null, null, true, array[99]::smallint[])$q$, '23503');
+
+-- T54..T64 : paiement (0008). Places 18 à 24 de la salle 1, libres jusqu'ici.
+insert into reservation (id, seance_id, email) values
+ ('e0000000-0000-0000-0000-000000000001', 1, 'e1@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000002', 1, 'e2@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000003', 1, 'e3@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000004', 1, 'e4@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000005', 1, 'e5@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000006', 1, 'e6@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000007', 1, 'e7@exemple.test'),
+ ('e0000000-0000-0000-0000-000000000008', 1, 'e8@exemple.test');
+select poser_verrous('e0000000-0000-0000-0000-000000000001', array[20, 21]);
+create temp table cmd1 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000001');
+select pg_temp.doit_etre_vrai('T54 une commande reprend les places bloquées et leur prix',
+  $q$select (select montant = 2500 and nb_places = 2 and prix_unitaire = 1250 and titre_film is not null from cmd1)
+        and exists (select 1 from commande c join cmd1 on c.id = cmd1.commande_id
+                    where c.statut = 'en_attente' and c.places = array[20, 21]::bigint[] and c.montant_centimes = 2500)$q$);
+select pg_temp.doit_echouer('T55 pas de commande sans place encore bloquée',
+  $q$select * from ouvrir_commande('e0000000-0000-0000-0000-000000000002')$q$, 'LGC02');
+select pg_temp.doit_echouer('T56 pas de commande pour une réservation inconnue',
+  $q$select * from ouvrir_commande('e0000000-0000-0000-0000-0000000000ff')$q$, 'LGC04');
+
+create temp table conf1 as select confirmer_commande((select commande_id from cmd1), 'pi_test_1', 2500) as r;
+select pg_temp.doit_etre_vrai('T57 paiement confirmé : billets créés, verrous levés, réservation confirmée',
+  $q$select (select r = 'confirmee' from conf1)
+        and (select count(*) = 2 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001'
+                                               and statut = 'valide' and prix_centimes = 1250)
+        and not exists (select 1 from verrou_place where reservation_id = 'e0000000-0000-0000-0000-000000000001')
+        and exists (select 1 from reservation where id = 'e0000000-0000-0000-0000-000000000001' and statut = 'confirmee')
+        and exists (select 1 from commande where id = (select commande_id from cmd1)
+                    and statut = 'payee' and prestataire_paiement_id = 'pi_test_1')$q$);
+select pg_temp.doit_etre_vrai('T58 un webhook reçu deux fois ne crée pas de billet en plus',
+  $q$select confirmer_commande((select commande_id from cmd1), 'pi_test_1', 2500) = 'deja_confirmee'
+        and (select count(*) = 2 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001')$q$);
+select pg_temp.doit_echouer('T59 pas de nouvelle commande pour une réservation confirmée',
+  $q$select * from ouvrir_commande('e0000000-0000-0000-0000-000000000001')$q$, 'LGC03');
+
+-- Paiement tardif : le verrou a expiré pendant que le client était sur la page de paiement.
+select poser_verrous('e0000000-0000-0000-0000-000000000003', array[22]);
+create temp table cmd3 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000003');
+update verrou_place set expire_at = now() - interval '1 second' where reservation_id = 'e0000000-0000-0000-0000-000000000003';
+create temp table conf3 as select confirmer_commande((select commande_id from cmd3), 'pi_test_3', 1250) as r;
+select pg_temp.doit_etre_vrai('T60 paiement tardif accepté si personne n''a pris la place',
+  $q$select (select r = 'confirmee' from conf3)
+        and exists (select 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000003' and place_id = 22)$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000004', array[23]);
+create temp table cmd4 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000004');
+update verrou_place set expire_at = now() - interval '1 second' where reservation_id = 'e0000000-0000-0000-0000-000000000004';
+select poser_verrous('e0000000-0000-0000-0000-000000000005', array[23]);   -- un autre client reprend la place
+create temp table conf4 as select confirmer_commande((select commande_id from cmd4), 'pi_test_4', 1250) as r;
+select pg_temp.doit_etre_vrai('T61 paiement tardif refusé si la place a été reprise : aucun billet, verrou de l''autre client intact',
+  $q$select (select r = 'places_perdues' from conf4)
+        and not exists (select 1 from billet where place_id = 23 and seance_id = 1)
+        and exists (select 1 from commande where id = (select commande_id from cmd4) and statut = 'echouee')
+        and exists (select 1 from reservation where id = 'e0000000-0000-0000-0000-000000000004' and statut = 'expiree')
+        and exists (select 1 from verrou_place where place_id = 23 and reservation_id = 'e0000000-0000-0000-0000-000000000005')$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000006', array[24]);
+create temp table cmd6 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000006');
+select pg_temp.doit_etre_vrai('T62 montant différent de la commande refusé, aucun billet',
+  $q$select confirmer_commande((select commande_id from cmd6), 'pi_test_6', 1) = 'montant_incorrect'
+        and not exists (select 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000006')$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000007', array[19]);
+create temp table cmd7a as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000007');
+create temp table cmd7b as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000007');
+select confirmer_commande((select commande_id from cmd7a), 'pi_test_7a', 1250);
+select pg_temp.doit_etre_vrai('T63 une seconde page de paiement réglée ensuite est refusée',
+  $q$select confirmer_commande((select commande_id from cmd7b), 'pi_test_7b', 1250) = 'reservation_close'
+        and (select count(*) = 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000007')$q$);
+
+select poser_verrous('e0000000-0000-0000-0000-000000000008', array[18]);
+create temp table cmd8 as select * from ouvrir_commande('e0000000-0000-0000-0000-000000000008');
+create temp table ab8 as select abandonner_commande((select commande_id from cmd8)) as a8,
+                               abandonner_commande((select commande_id from cmd1)) as a1;
+select pg_temp.doit_etre_vrai('T64 une commande en attente est abandonnée, une commande payée ne l''est pas',
+  $q$select (select a8 and a1 is null from ab8)
+        and exists (select 1 from commande where id = (select commande_id from cmd1) and statut = 'payee')
+        and exists (select 1 from commande where id = (select commande_id from cmd8) and statut = 'abandonnee')$q$);
+
+-- T65..T72 : contrôle des billets à l'entrée (0009). Deux séances de test dans la salle 2 :
+-- l'une commence dans 30 minutes (créneau ouvert), l'autre est terminée.
+insert into seance (id, film_id, salle_id, debut_at, fin_at, prix_centimes, statut) overriding system value values
+ (9001, 1, 2, now() + interval '30 minutes', now() + interval '2 hours 30 minutes', 1000, 'publiee'),
+ (9002, 1, 2, now() - interval '5 hours', now() - interval '3 hours', 1000, 'publiee');
+insert into reservation (id, seance_id, email, statut, confirmee_at) values
+ ('f0000000-0000-0000-0000-000000000001', 9001, 'f1@exemple.test', 'confirmee', now()),
+ ('f0000000-0000-0000-0000-000000000002', 9002, 'f2@exemple.test', 'confirmee', now());
+insert into billet (reservation_id, seance_id, place_id, salle_id, prix_centimes, jeton_qr, statut, utilise_at) values
+ ('f0000000-0000-0000-0000-000000000001', 9001, 25, 2, 1000, 'jeton-test-ok', 'valide', null),
+ ('f0000000-0000-0000-0000-000000000001', 9001, 26, 2, 1000, 'jeton-test-annule', 'annule', null),
+ ('f0000000-0000-0000-0000-000000000001', 9001, 27, 2, 1000, 'jeton-test-seance-annulee', 'valide', null),
+ ('f0000000-0000-0000-0000-000000000002', 9002, 25, 2, 1000, 'jeton-test-termine', 'valide', null);
+
+create temp table ctrl1 as select * from controler_billet('jeton-test-ok');
+select pg_temp.doit_etre_vrai('T65 billet valide dans le créneau : accepté et marqué utilisé',
+  $q$select (select resultat = 'accepte' and rangee_place = 'A' and numero_place = 1 and nom_salle is not null
+                    and utilise_le is not null from ctrl1)
+        and exists (select 1 from billet where jeton_qr = 'jeton-test-ok' and statut = 'utilise' and utilise_at is not null)$q$);
+select pg_temp.doit_etre_vrai('T66 un billet déjà utilisé est refusé, avec l''heure du premier passage',
+  $q$select resultat = 'deja_utilise' and utilise_le = (select utilise_le from ctrl1)
+       from controler_billet('jeton-test-ok')$q$);
+select pg_temp.doit_etre_vrai('T67 jeton inconnu refusé',
+  $q$select resultat = 'inconnu' and titre_film is null from controler_billet('pas-un-billet')$q$);
+select pg_temp.doit_etre_vrai('T68 billet d''une séance de demain refusé (trop tôt), il reste valide',
+  $q$select (select resultat = 'trop_tot' from controler_billet(
+               (select jeton_qr from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001' limit 1)))$q$);
+select pg_temp.doit_etre_vrai('T69 le refus « trop tôt » ne consomme pas le billet',
+  $q$select not exists (select 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001'
+                        and statut <> 'valide')$q$);
+select pg_temp.doit_etre_vrai('T70 billet annulé refusé',
+  $q$select resultat = 'annule' from controler_billet('jeton-test-annule')$q$);
+select pg_temp.doit_etre_vrai('T71 billet d''une séance terminée refusé',
+  $q$select resultat = 'seance_terminee' from controler_billet('jeton-test-termine')$q$);
+update seance set statut = 'annulee' where id = 9001;
+select pg_temp.doit_etre_vrai('T72 billet d''une séance annulée refusé',
+  $q$select resultat = 'seance_annulee' from controler_billet('jeton-test-seance-annulee')$q$);
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;

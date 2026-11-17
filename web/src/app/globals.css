@@ -468,3 +468,100 @@ td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Programmation : créer et modifier un film (E7) --------------------- */
+.lien-secondaire {
+  margin: -0.25rem 0 1rem;
+}
+
+.lien-secondaire a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.formulaire textarea {
+  padding: 0.5rem;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--background);
+  color: var(--foreground);
+  resize: vertical;
+}
+
+.formulaire .genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem 0.75rem;
+}
+
+.formulaire .genres legend {
+  padding: 0 0.25rem;
+}
+
+.etroite-large {
+  max-width: 640px;
+}
+
+/* E5 — billets avec QR code */
+.billets {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.billet {
+  border: 1px dashed var(--bordure);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  break-inside: avoid;
+}
+
+.billet img {
+  display: block;
+  margin: 0.5rem auto;
+  background: #fff; /* le QR code reste lisible en thème sombre */
+}
+
+.billet-place {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.billet-code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.billet.utilise {
+  opacity: 0.6;
+}
+
+/* E5 — poste de contrôle : un résultat lisible de loin */
+.verdict {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  color: #fff;
+}
+
+.verdict-ok {
+  background: var(--succes);
+}
+
+.verdict-refus {
+  background: var(--accent);
+}
+
+.verdict-titre {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}

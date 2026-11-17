@@ -6,6 +6,7 @@ import { formaterPrix } from "@/lib/dates";
 import { MAX_PLACES_PAR_RESERVATION, resultatAOublier } from "@/modules/reservations/regles";
 import type { PlaceDeSeance } from "@/modules/seances/depot";
 import { descriptionPlace, libellePlace, organiserPlan } from "@/modules/seances/plan";
+import { BoutonPayer } from "@/app/reservations/bouton-payer";
 import { reserverPlaces, type EtatReservation } from "./actions";
 
 const ETAT_INITIAL: EtatReservation = { statut: "initial", message: "" };
@@ -92,9 +93,14 @@ function Reservation({
         {etat.expireAt ? (
           <CompteARebours expireAt={etat.expireAt} onRecommencer={recommencer} />
         ) : null}
+        {etat.reservationId ? (
+          <BoutonPayer
+            reservationId={etat.reservationId}
+            montantCentimes={(etat.placeIds?.length ?? 0) * prixCentimes}
+          />
+        ) : null}
         <p className="discret">
-          Le paiement en ligne (EPIC E4) arrive dans une prochaine version : passé le délai, les
-          places sont libérées automatiquement.
+          Sans paiement dans le délai, les places sont libérées automatiquement.
         </p>
         {emailConnecte ? (
           <p>

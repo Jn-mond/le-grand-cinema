@@ -3,6 +3,7 @@
 import { refresh } from "next/cache";
 import { formaterDateHeure } from "@/lib/dates";
 import { ErreurApplication } from "@/lib/erreurs";
+import { messageSaisie, valeursSaisies, type ValeursSaisies } from "@/lib/formulaire";
 import { utilisateurConnecte } from "@/lib/session";
 import { clientSupabaseServeur } from "@/lib/supabase-serveur";
 import { valider } from "@/modules/reservations/schemas";
@@ -15,7 +16,11 @@ import { peutProgrammer } from "@/modules/utilisateurs/roles";
 export interface EtatFormulaireSeance {
   succes: boolean;
   message: string;
+  /** Saisie refusée, pour que le formulaire la réaffiche au lieu de se vider. */
+  valeurs?: ValeursSaisies;
 }
+
+const CHAMPS_SEANCE = ["filmId", "salleId", "debut", "version", "prix", "publier"] as const;
 
 /** E7 — programmer une séance. Le rôle est revérifié ici : l'interface seule ne protège rien. */
 export async function actionProgrammerSeance(
@@ -36,11 +41,16 @@ export async function actionProgrammerSeance(
     const etat = seance.statut === "publiee" ? "publiée" : "enregistrée en brouillon";
     return { succes: true, message: `Séance ${etat} : ${formaterDateHeure(seance.debutAt)}.` };
   } catch (erreur) {
+    const valeurs = valeursSaisies(donnees, CHAMPS_SEANCE);
     if (erreur instanceof ErreurApplication) {
-      return { succes: false, message: erreur.message };
+      return { succes: false, message: messageSaisie(erreur), valeurs };
     }
     console.error("Programmation impossible", erreur);
-    return { succes: false, message: "Erreur inattendue : la séance n’a pas été créée." };
+    return {
+      succes: false,
+      message: "Erreur inattendue : la séance n’a pas été créée.",
+      valeurs,
+    };
   }
 }
 
