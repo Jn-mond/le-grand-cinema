@@ -62,8 +62,12 @@ jobs:
           done
       - name: Tests d'intégrité
         run: psql -v ON_ERROR_STOP=1 -q -f db/tests/contraintes.sql
-      - name: Test de concurrence
+      - name: Test de concurrence (verrou)
         run: bash db/tests/concurrence.sh
+      - name: Test de concurrence (paiement)
+        run: bash db/tests/concurrence_paiement.sh
+      - name: Test de concurrence (contrôle à l'entrée)
+        run: bash db/tests/concurrence_controle.sh
 
   application:
     name: Application web (format, lint, tests, build)
