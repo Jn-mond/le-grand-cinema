@@ -16,6 +16,8 @@ export interface EtatReservation {
   statut: "initial" | "bloquee" | "refus" | "erreur";
   message: string;
   reference?: string;
+  /** Identifiant de la réservation, pour le paiement (E4). */
+  reservationId?: string;
   expireAt?: string;
   placeIds?: number[];
 }
@@ -53,6 +55,7 @@ export async function reserverPlaces(
       statut: "bloquee",
       message: "Vos places sont bloquées.",
       reference: reservation.reference,
+      reservationId: reservation.id,
       expireAt: verrous.expireAt.toISOString(),
       placeIds: verrous.placeIds,
     };

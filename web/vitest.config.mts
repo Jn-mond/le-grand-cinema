@@ -18,6 +18,7 @@ export default defineConfig({
         "src/**/depot.ts",
         "src/**/*-supabase.ts",
         "src/lib/supabase-serveur.ts",
+        "src/lib/stripe-serveur.ts",
         "src/lib/supabase-auth.ts",
         "src/lib/session.ts",
       ],

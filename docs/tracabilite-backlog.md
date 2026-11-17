@@ -11,7 +11,7 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 | E1 Catalogue et programmation publique | MVP | Must | Couvert |
 | E2 Disponibilités et plan de salle en temps réel | MVP | Must | Couvert (diffusion en temps réel : application) |
 | E3 Réservation et verrou de places | MVP | Must | Couvert |
-| E4 Paiement en ligne sécurisé | MVP | Must | Couvert (hypothèse H4 à valider) |
+| E4 Paiement en ligne sécurisé | MVP | Must | Couvert depuis la migration 0008 (Stripe en mode test) |
 | E5 Billet dématérialisé et contrôle d'accès | MVP | Must | Couvert (signature du QR code : application) |
 | E6 Réservation invité et compte client | MVP / V1 | Should | Couvert pour l'invité ; connexion et espace client depuis la migration 0006 |
 | E7 Gestion de la programmation | MVP | Must | Partiel (un seul prix par séance) |
@@ -40,11 +40,15 @@ Légende du statut : **Couvert** (la base fournit tout ce que l'EPIC demande cô
 - **Base :** `reservation`, `verrou_place`, fonctions `poser_verrou()` et `liberer_verrous_expires()`. Le verrou dure 10 minutes (`expire_at`) ; un verrou expiré est écrasé par la réservation suivante sans attendre le nettoyage (test T16) et ne peut pas être prolongé (correctif C1, tests T39 à T41) ; `poser_verrous()` bloque plusieurs places d'un coup, toutes ou aucune (tests T42 à T45) ; la tâche planifiée libère les verrous expirés (test T17).
 - **Application :** API `POST /api/reservations` et `POST /api/reservations/{id}/verrous` (documentée dans `web/public/openapi.json`), avec validation des entrées et erreurs normalisées. La page `/seances/{id}` utilise les mêmes services : le spectateur choisit jusqu'à 10 places, saisit son e-mail (celui du compte s'il est connecté, la réservation est alors rattachée au compte), puis bloque ses places ; il obtient sa référence `LGC-…`, le total et un compte à rebours de 10 minutes. Si une place a été prise entre-temps, aucune n'est bloquée, le message l'indique et le plan se met à jour. La réservation ferme au début de la séance.
 - **Affichage du statut :** une réservation restée « en attente de paiement » au-delà de 10 minutes est affichée « Expirée » dans l'espace client (`statutAffiche()`), même avant que la base ne soit mise à jour : ses verrous ne bloquent déjà plus aucune place.
-- **Restent :** le paiement (E4), qui confirmera la réservation, et le déclenchement de la tâche planifiée.
+- **Restent :** le déclenchement de la tâche planifiée. Le paiement (E4) confirme désormais la réservation.
 
 ### E4 — Paiement en ligne sécurisé (U1, U2, U3)
 - **Base :** `commande` (une tentative de paiement, un seul paiement validé par réservation, test T25) et `evenement_paiement` (chaque message du prestataire n'est traité qu'une fois). Aucune donnée de carte n'est stockée : la saisie se fait chez le prestataire.
-- **À valider :** l'hypothèse H4 du backlog (le paiement en ligne n'est pas cité dans l'énoncé). Si la direction ne le retient pas, ces deux tables restent sans effet sur le reste du modèle.
+- **Hypothèse H4 :** le paiement en ligne n'est pas cité dans l'énoncé ; il est réalisé avec Stripe en mode test, sans compte marchand activé.
+- **Payer ses places** (branche `feature/e4-paiement-stripe`) : après le blocage des places, le bouton « Payer » ouvre la page de paiement hébergée par Stripe, avec la capture différée : la carte est autorisée, puis débitée seulement une fois les billets créés. La migration 0008 ajoute `ouvrir_commande()`, `confirmer_commande()` et `abandonner_commande()` (tests T54 à T64, et `db/tests/concurrence_paiement.sh` : 10 paiements simultanés pour la même place, un seul billet).
+- **Confirmer par webhook** : `POST /api/paiements/webhook` vérifie la signature de Stripe, traite chaque événement une seule fois, crée les billets et capture le paiement. Un paiement arrivé après l'expiration du verrou est accepté si la place est restée libre ; si elle a été reprise, aucun billet n'est créé et l'autorisation est annulée : le client n'est pas débité.
+- **Échec ou abandon** : une carte refusée reste sur la page Stripe ; un abandon ramène sur `/reservations/{id}`, qui permet de reprendre le paiement tant que les places sont bloquées ; une page expirée passe la commande à « abandonnée ». Détail et recette : [`paiement.md`](paiement.md).
+- **Restent :** l'e-mail de confirmation (pas de domaine d'envoi) et une tâche de rapprochement pour un webhook qui n'arriverait jamais.
 
 ### E5 — Billet dématérialisé et contrôle d'accès (U1, U2, U4)
 - **Base :** `billet` avec un `jeton_qr` unique et un statut `valide`, `utilise` ou `annule`. Un billet « utilisé » doit porter sa date d'utilisation (contrainte `billet_utilisation_coherente`) ; le contrôle d'accès refuse un billet déjà utilisé en lisant ce statut.

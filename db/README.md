@@ -23,6 +23,7 @@ psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0004_verrou_non_prolongeable.s
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0005_verrou_multiple_et_securite_api.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0006_authentification.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0007_gestion_films.sql
+psql lgc_test -v ON_ERROR_STOP=1 -f db/migrations/0008_paiement.sql
 psql lgc_test -v ON_ERROR_STOP=1 -f db/seeds/jeu_essai.sql
 ```
 
@@ -31,11 +32,12 @@ Sur Supabase : ouvrir le *SQL Editor*, coller le contenu de chaque fichier et l'
 ## Lancer les tests
 
 ```bash
-psql lgc_test -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql   # 53 tests ; la base n'est pas modifiée
+psql lgc_test -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql   # 64 tests ; la base n'est pas modifiée
 PGDATABASE=lgc_test ./db/tests/concurrence.sh                  # 20 clients, une seule place : 1 seul gagnant
+PGDATABASE=lgc_test ./db/tests/concurrence_paiement.sh         # 10 paiements, une seule place : 1 seul billet
 ```
 
-`contraintes.sql` affiche un tableau « OK / ÉCHEC » et s'arrête en erreur si un test échoue. Les deux tests se lancent **après** le jeu d'essai.
+`contraintes.sql` affiche un tableau « OK / ÉCHEC » et s'arrête en erreur si un test échoue. Les trois tests se lancent **après** le jeu d'essai.
 
 ## Ajouter une évolution
 
