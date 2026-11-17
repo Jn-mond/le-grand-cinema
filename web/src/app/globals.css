@@ -468,3 +468,40 @@ td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Programmation : créer et modifier un film (E7) --------------------- */
+.lien-secondaire {
+  margin: -0.25rem 0 1rem;
+}
+
+.lien-secondaire a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.formulaire textarea {
+  padding: 0.5rem;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--background);
+  color: var(--foreground);
+  resize: vertical;
+}
+
+.formulaire .genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  border: 1px solid var(--bordure);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem 0.75rem;
+}
+
+.formulaire .genres legend {
+  padding: 0 0.25rem;
+}
+
+.etroite-large {
+  max-width: 640px;
+}

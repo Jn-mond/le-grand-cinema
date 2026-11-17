@@ -2,7 +2,7 @@
 
 Ce document décrit la base de données de l'application de réservation : ce qu'elle contient, les règles qu'elle garantit elle-même, et comment la faire évoluer avec les bons outils.
 
-- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche) [`0004_verrou_non_prolongeable.sql`](../db/migrations/0004_verrou_non_prolongeable.sql) (correctif du verrou) [`0005_verrou_multiple_et_securite_api.sql`](../db/migrations/0005_verrou_multiple_et_securite_api.sql) (verrouillage de plusieurs places, protection de l'API) et [`0006_authentification.sql`](../db/migrations/0006_authentification.sql) (création de l'utilisateur à l'inscription, voir [`authentification.md`](authentification.md))
+- Scripts de création : [`db/migrations/0001_modele_initial.sql`](../db/migrations/0001_modele_initial.sql), puis [`0002_vente_guichet.sql`](../db/migrations/0002_vente_guichet.sql) (ventes au guichet) [`0003_reference_et_nom_client.sql`](../db/migrations/0003_reference_et_nom_client.sql) (référence et recherche) [`0004_verrou_non_prolongeable.sql`](../db/migrations/0004_verrou_non_prolongeable.sql) (correctif du verrou) [`0005_verrou_multiple_et_securite_api.sql`](../db/migrations/0005_verrou_multiple_et_securite_api.sql) (verrouillage de plusieurs places, protection de l'API) [`0006_authentification.sql`](../db/migrations/0006_authentification.sql) (création de l'utilisateur à l'inscription, voir [`authentification.md`](authentification.md)) et [`0007_gestion_films.sql`](../db/migrations/0007_gestion_films.sql) (créer et modifier un film avec ses genres)
 - Schéma modifiable : [`docs/schema_base_de_donnees.drawio`](schema_base_de_donnees.drawio) (ouvrir avec [draw.io](https://app.diagrams.net) ou l'extension VS Code « Draw.io Integration »)
 - Image du schéma : [`docs/schema_base_de_donnees.png`](schema_base_de_donnees.png)
 - Tests et jeu d'essai : [`db/`](../db/README.md)
@@ -166,7 +166,7 @@ Chaque règle importante est appliquée par la base elle-même, pas seulement pa
 | Une adresse e-mail n'a qu'un compte, sans distinction de majuscules ; son format est vérifié. | Index unique sur `lower(email)` et contrainte `CHECK`. |
 | On ne supprime pas par erreur un film, une salle ou une séance utilisés. | Clés étrangères en `ON DELETE RESTRICT`. |
 
-Les 45 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
+Les 53 tests de [`db/tests/contraintes.sql`](../db/tests/contraintes.sql) vérifient ces règles, et [`db/tests/concurrence.sh`](../db/tests/concurrence.sh) vérifie que, si 20 clients tentent de bloquer la même place au même instant, un seul y parvient.
 
 ## 4. Choix de conception
 
