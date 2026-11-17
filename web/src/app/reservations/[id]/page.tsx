@@ -10,10 +10,11 @@ import { etatPaiement } from "@/modules/paiements/suivi";
 import { libellePlace } from "@/modules/seances/plan";
 import { BoutonPayer } from "../bouton-payer";
 import { Actualisation } from "./actualisation";
+import { Billets } from "./billets";
 
-export const metadata: Metadata = { title: "Paiement — Le Grand Cinéma" };
+export const metadata: Metadata = { title: "Réservation — Le Grand Cinéma" };
 
-/** E4 — page de retour du paiement : confirmé, en cours, abandonné ou refusé. */
+/** E4 et E5 — page de retour du paiement (confirmé, en cours, abandonné, refusé) et billets. */
 export default function PageReservation({ params, searchParams }: PageProps<"/reservations/[id]">) {
   return (
     <>
@@ -46,7 +47,18 @@ async function SuiviPaiement({ params, searchParams }: PageProps<"/reservations/
     <section className="carte recapitulatif" aria-live="polite">
       <h1>{TITRES[etat]}</h1>
       <Resume reservation={reservation} />
-      {etat === "confirmee" ? <Billets reservation={reservation} /> : null}
+      {etat === "confirmee" ? (
+        <>
+          <Recapitulatif reservation={reservation} />
+          <h2>Vos billets</h2>
+          <p className="discret">
+            Présentez un QR code par personne à l’entrée de la salle, sur téléphone ou imprimé.
+            Gardez l’adresse de cette page : elle est aussi accessible depuis « Mon espace » si vous
+            avez un compte.
+          </p>
+          <Billets billets={reservation.billets} />
+        </>
+      ) : null}
       {etat === "en_cours" ? <Actualisation /> : null}
       {etat === "non_abouti" ? (
         <p>
@@ -96,7 +108,7 @@ function Resume({ reservation }: { reservation: ReservationPayee }) {
   );
 }
 
-function Billets({ reservation }: { reservation: ReservationPayee }) {
+function Recapitulatif({ reservation }: { reservation: ReservationPayee }) {
   const total = reservation.billets.reduce((somme, billet) => somme + billet.prixCentimes, 0);
   return (
     <>

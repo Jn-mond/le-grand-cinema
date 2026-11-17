@@ -19,6 +19,11 @@ export function peutConsulterReservations(role: Role): boolean {
   return role === "accueil" || peutProgrammer(role);
 }
 
+/** Contrôler les billets à l'entrée (E5) : les mêmes personnels que la consultation. */
+export function peutControlerBillets(role: Role): boolean {
+  return peutConsulterReservations(role);
+}
+
 /** Page où envoyer une personne juste après sa connexion. */
 export function pageApresConnexion(role: Role): "/admin" | "/espace" {
   return peutProgrammer(role) ? "/admin" : "/espace";

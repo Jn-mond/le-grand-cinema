@@ -121,7 +121,16 @@ export interface ReservationPayee {
   derniereCommande: string | null;
   bloqueeJusqua: Date | null;
   montantCentimes: number | null;
-  billets: { rangee: string; numero: number; prixCentimes: number }[];
+  billets: BilletPaye[];
+}
+
+/** Billet d'une réservation payée (E5) : place, jeton du QR code et passage à l'entrée. */
+export interface BilletPaye {
+  rangee: string;
+  numero: number;
+  prixCentimes: number;
+  jeton: string;
+  utiliseLe: Date | null;
 }
 
 interface LigneReservationPayee {
@@ -160,14 +169,19 @@ export async function lireReservationPayee(
     client.from("verrou_place").select("expire_at").eq("reservation_id", reservationId),
     client
       .from("billet")
-      .select("place_id, prix_centimes")
+      .select("place_id, prix_centimes, jeton_qr, utilise_at")
       .eq("reservation_id", reservationId)
       .neq("statut", "annule"),
   ]);
   const echec = commandes.error ?? verrous.error ?? billets.error;
   if (echec) throw new Error(`Lecture du paiement impossible : ${echec.message}`);
 
-  const lignesBillets = (billets.data ?? []) as { place_id: number; prix_centimes: number }[];
+  const lignesBillets = (billets.data ?? []) as {
+    place_id: number;
+    prix_centimes: number;
+    jeton_qr: string;
+    utilise_at: string | null;
+  }[];
   const places = new Map<number, { rangee: string; numero: number }>();
   if (lignesBillets.length > 0) {
     const { data: lignesPlaces, error: erreurPlaces } = await client
@@ -201,6 +215,8 @@ export async function lireReservationPayee(
         rangee: places.get(Number(billet.place_id))?.rangee ?? "?",
         numero: places.get(Number(billet.place_id))?.numero ?? 0,
         prixCentimes: billet.prix_centimes,
+        jeton: billet.jeton_qr,
+        utiliseLe: billet.utilise_at ? new Date(billet.utilise_at) : null,
       }))
       .sort((a, b) => a.rangee.localeCompare(b.rangee) || a.numero - b.numero),
   };

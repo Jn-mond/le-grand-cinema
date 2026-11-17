@@ -51,6 +51,7 @@ async function MesReservations() {
               <th>Film</th>
               <th>Séance</th>
               <th>Statut</th>
+              <th>Billets</th>
             </tr>
           </thead>
           <tbody>
@@ -62,6 +63,13 @@ async function MesReservations() {
                   {reservation.debutSeance ? formaterDateHeure(reservation.debutSeance) : "—"}
                 </td>
                 <td>{libelleStatut(statutAffiche(reservation.statut, reservation.creeAt))}</td>
+                <td>
+                  {reservation.statut === "confirmee" ? (
+                    <Link href={`/reservations/${reservation.id}`}>Voir mes billets</Link>
+                  ) : (
+                    "—"
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

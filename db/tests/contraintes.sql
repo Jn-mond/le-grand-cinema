@@ -1,4 +1,4 @@
--- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0008) et le jeu d'essai, sur une base de test :
+-- Tests des règles d'intégrité. À lancer APRÈS les migrations (0001 à 0009) et le jeu d'essai, sur une base de test :
 --   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/contraintes.sql
 -- Tout est exécuté dans une transaction annulée à la fin : la base n'est pas modifiée.
 begin;
@@ -319,6 +319,44 @@ select pg_temp.doit_etre_vrai('T64 une commande en attente est abandonnée, une 
   $q$select (select a8 and a1 is null from ab8)
         and exists (select 1 from commande where id = (select commande_id from cmd1) and statut = 'payee')
         and exists (select 1 from commande where id = (select commande_id from cmd8) and statut = 'abandonnee')$q$);
+
+-- T65..T72 : contrôle des billets à l'entrée (0009). Deux séances de test dans la salle 2 :
+-- l'une commence dans 30 minutes (créneau ouvert), l'autre est terminée.
+insert into seance (id, film_id, salle_id, debut_at, fin_at, prix_centimes, statut) overriding system value values
+ (9001, 1, 2, now() + interval '30 minutes', now() + interval '2 hours 30 minutes', 1000, 'publiee'),
+ (9002, 1, 2, now() - interval '5 hours', now() - interval '3 hours', 1000, 'publiee');
+insert into reservation (id, seance_id, email, statut, confirmee_at) values
+ ('f0000000-0000-0000-0000-000000000001', 9001, 'f1@exemple.test', 'confirmee', now()),
+ ('f0000000-0000-0000-0000-000000000002', 9002, 'f2@exemple.test', 'confirmee', now());
+insert into billet (reservation_id, seance_id, place_id, salle_id, prix_centimes, jeton_qr, statut, utilise_at) values
+ ('f0000000-0000-0000-0000-000000000001', 9001, 25, 2, 1000, 'jeton-test-ok', 'valide', null),
+ ('f0000000-0000-0000-0000-000000000001', 9001, 26, 2, 1000, 'jeton-test-annule', 'annule', null),
+ ('f0000000-0000-0000-0000-000000000001', 9001, 27, 2, 1000, 'jeton-test-seance-annulee', 'valide', null),
+ ('f0000000-0000-0000-0000-000000000002', 9002, 25, 2, 1000, 'jeton-test-termine', 'valide', null);
+
+create temp table ctrl1 as select * from controler_billet('jeton-test-ok');
+select pg_temp.doit_etre_vrai('T65 billet valide dans le créneau : accepté et marqué utilisé',
+  $q$select (select resultat = 'accepte' and rangee_place = 'A' and numero_place = 1 and nom_salle is not null
+                    and utilise_le is not null from ctrl1)
+        and exists (select 1 from billet where jeton_qr = 'jeton-test-ok' and statut = 'utilise' and utilise_at is not null)$q$);
+select pg_temp.doit_etre_vrai('T66 un billet déjà utilisé est refusé, avec l''heure du premier passage',
+  $q$select resultat = 'deja_utilise' and utilise_le = (select utilise_le from ctrl1)
+       from controler_billet('jeton-test-ok')$q$);
+select pg_temp.doit_etre_vrai('T67 jeton inconnu refusé',
+  $q$select resultat = 'inconnu' and titre_film is null from controler_billet('pas-un-billet')$q$);
+select pg_temp.doit_etre_vrai('T68 billet d''une séance de demain refusé (trop tôt), il reste valide',
+  $q$select (select resultat = 'trop_tot' from controler_billet(
+               (select jeton_qr from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001' limit 1)))$q$);
+select pg_temp.doit_etre_vrai('T69 le refus « trop tôt » ne consomme pas le billet',
+  $q$select not exists (select 1 from billet where reservation_id = 'e0000000-0000-0000-0000-000000000001'
+                        and statut <> 'valide')$q$);
+select pg_temp.doit_etre_vrai('T70 billet annulé refusé',
+  $q$select resultat = 'annule' from controler_billet('jeton-test-annule')$q$);
+select pg_temp.doit_etre_vrai('T71 billet d''une séance terminée refusé',
+  $q$select resultat = 'seance_terminee' from controler_billet('jeton-test-termine')$q$);
+update seance set statut = 'annulee' where id = 9001;
+select pg_temp.doit_etre_vrai('T72 billet d''une séance annulée refusé',
+  $q$select resultat = 'seance_annulee' from controler_billet('jeton-test-seance-annulee')$q$);
 
 -- Rapport
 select test, case when ok then 'OK' else 'ÉCHEC' end as resultat from resultats order by test;

@@ -25,6 +25,8 @@ Ce document décrit comment les personnes se connectent à l'application, commen
 | `/admin` | Rôles `programmateur` et `administrateur` | Séances à venir, création d'une séance, publication ou retrait du site (E7) |
 | `/admin/films` et `/admin/films/{id}` | Rôles `programmateur` et `administrateur` | Catalogue des films, actifs ou non ; création et modification d'un film avec ses genres (E7) |
 | `/admin/seances/{id}` | Rôles `accueil`, `programmateur` et `administrateur` | Réservations d'une séance : référence, client, places, canal, statut, date de création (E8) |
+| `/controle` | Rôles `accueil`, `programmateur` et `administrateur` | Contrôle des billets à l'entrée, à la douchette ou par saisie du code (E5) |
+| `/reservations/{id}` | Toute personne qui a l'adresse (identifiant aléatoire, impossible à deviner) | Retour du paiement et billets avec QR code (E4, E5) |
 
 Après connexion, le personnel de programmation arrive sur `/admin`, les autres sur `/espace`. En cas d'échec, le message est le même que l'adresse existe ou non, pour ne pas révéler quels comptes existent. Supabase Auth limite par ailleurs le nombre de tentatives de connexion.
 
